@@ -1,82 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-
-const PLANET_INFO = {
-	mercury: {
-		name: "Mercury",
-		distanceFromSun: "57.9 million km",
-		diameter: "4,879 km",
-		dayLength: "176 Earth days",
-		yearLength: "88 Earth days",
-		temperature: "-180°C to 430°C",
-		funFact:
-			"Mercury's surface resembles our Moon with numerous impact craters.",
-	},
-	venus: {
-		name: "Venus",
-		distanceFromSun: "108.2 million km",
-		diameter: "12,104 km",
-		dayLength: "243 Earth days",
-		yearLength: "225 Earth days",
-		temperature: "462°C",
-		funFact: "Venus spins backwards compared to most other planets.",
-	},
-	earth: {
-		name: "Earth",
-		distanceFromSun: "149.6 million km",
-		diameter: "12,742 km",
-		dayLength: "24 hours",
-		yearLength: "365.25 days",
-		temperature: "-88°C to 58°C",
-		funFact: "Earth is the only known planet to support life.",
-	},
-	mars: {
-		name: "Mars",
-		distanceFromSun: "227.9 million km",
-		diameter: "6,779 km",
-		dayLength: "24 hours 37 minutes",
-		yearLength: "687 Earth days",
-		temperature: "-140°C to 20°C",
-		funFact: "Mars has the largest volcano in the solar system, Olympus Mons.",
-	},
-	jupiter: {
-		name: "Jupiter",
-		distanceFromSun: "778.5 million km",
-		diameter: "139,820 km",
-		dayLength: "10 Earth hours",
-		yearLength: "12 Earth years",
-		temperature: "-110°C",
-		funFact:
-			"Jupiter's Great Red Spot is a storm that has lasted over 400 years.",
-	},
-	saturn: {
-		name: "Saturn",
-		distanceFromSun: "1.4 billion km",
-		diameter: "116,460 km",
-		dayLength: "10.7 Earth hours",
-		yearLength: "29.5 Earth years",
-		temperature: "-140°C",
-		funFact: "Saturn's rings are mostly made of ice and rock.",
-	},
-	uranus: {
-		name: "Uranus",
-		distanceFromSun: "2.9 billion km",
-		diameter: "50,724 km",
-		dayLength: "17 Earth hours",
-		yearLength: "84 Earth years",
-		temperature: "-195°C",
-		funFact: "Uranus rotates on its side, like a rolling ball.",
-	},
-	neptune: {
-		name: "Neptune",
-		distanceFromSun: "4.5 billion km",
-		diameter: "49,244 km",
-		dayLength: "16 Earth hours",
-		yearLength: "165 Earth years",
-		temperature: "-200°C",
-		funFact: "Neptune has the strongest winds in the solar system.",
-	},
-};
+import { useSpring, animated, SpringValue } from "react-spring";
 
 const Planet = ({
 	orbitRadius,
@@ -84,8 +7,9 @@ const Planet = ({
 	size,
 	color,
 	rotationX,
-	planetIndex,
-	onHover,
+}: {
+	rotationX: SpringValue<number>;
+	[key: string]: any;
 }) => {
 	const [angle, setAngle] = useState(Math.random() * 360);
 	const scaledPeriod = period * 8;
@@ -100,116 +24,123 @@ const Planet = ({
 		return () => clearInterval(interval);
 	}, [scaledPeriod]);
 
-	const baseX = Math.cos((angle * Math.PI) / 180) * orbitRadius;
-	const baseY = Math.sin((angle * Math.PI) / 180) * orbitRadius;
-	const baseZ = 0;
-
-	const rotX = (rotationX * Math.PI) / 180;
-
-	const finalX = baseX;
-	const finalY = baseY * Math.cos(rotX);
-	const finalZ = baseY * Math.sin(rotX);
-
-	const perspectiveFactor = 1000;
-	const scale = perspectiveFactor / (perspectiveFactor + finalZ);
-
-	const x = finalX * scale;
-	const y = finalY * scale;
-	const scaledSize = size * scale;
-	const opacity = Math.min(1, Math.max(0.5, (finalZ + 1000) / 1500));
-
 	return (
 		<>
-			<ellipse
-				cx={0}
-				cy={0}
-				rx={orbitRadius}
-				ry={orbitRadius * Math.cos(rotX)}
+			<animated.path
+				d={rotationX.to((rot) => {
+					const rotX = (rot * Math.PI) / 180;
+					const points = [];
+					for (let i = 0; i <= 360; i += 5) {
+						const angleRad = (i * Math.PI) / 180;
+						const x = Math.cos(angleRad) * orbitRadius;
+						const y = Math.sin(angleRad) * orbitRadius * Math.cos(rotX);
+						const z = Math.sin(angleRad) * orbitRadius * Math.sin(rotX);
+						const scale = 1000 / (1000 + z);
+						points.push(`${x * scale},${y * scale}`);
+					}
+					return `M ${points.join(" L ")} Z`;
+				})}
 				fill="none"
 				stroke="#666"
 				strokeWidth="1"
 				opacity="0.6"
 			/>
 
-			<circle
-				cx={x}
-				cy={y}
-				r={scaledSize}
+			<animated.circle
+				cx={rotationX.to((rot) => {
+					const rotX = (rot * Math.PI) / 180;
+					const x = Math.cos((angle * Math.PI) / 180) * orbitRadius;
+					const y =
+						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.cos(rotX);
+					const z =
+						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+					const scale = 1000 / (1000 + z);
+					return x * scale;
+				})}
+				cy={rotationX.to((rot) => {
+					const rotX = (rot * Math.PI) / 180;
+					const y =
+						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.cos(rotX);
+					const z =
+						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+					const scale = 1000 / (1000 + z);
+					return y * scale;
+				})}
+				r={rotationX.to((rot) => {
+					const rotX = (rot * Math.PI) / 180;
+					const z =
+						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+					const scale = 1000 / (1000 + z);
+					return size * scale;
+				})}
 				fill={color}
-				className="planet cursor-pointer transition-all hover:brightness-125"
+				className="planet"
 				style={{
-					opacity,
 					filter: "saturate(1.2) brightness(1.1)",
+					opacity: rotationX.to((rot) => {
+						const rotX = (rot * Math.PI) / 180;
+						const z =
+							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+						return Math.min(1, Math.max(0.5, (z + 1000) / 1500));
+					}),
 				}}
-				onMouseEnter={() => onHover(planetIndex)}
-				onMouseLeave={() => onHover(null)}
 			/>
 		</>
 	);
 };
 
-// RotationIndicator component stays the same
 const RotationIndicator = ({ rotation }) => {
-	// ... same code as before ...
-};
+	const radius = 20; // Changed from 30
+	const angle = (rotation * 90) / 100 - 90;
 
-const InfoCard = ({ planetInfo }) => {
-	if (!planetInfo) return null;
+	const x = radius * Math.cos((angle * Math.PI) / 180);
+	const y = radius * Math.sin((angle * Math.PI) / 180);
 
 	return (
-		<Card className="absolute right-6 top-1/2 -translate-y-1/2 w-72 bg-gray-800/90 backdrop-blur border-gray-700">
-			<CardContent className="p-4 space-y-3">
-				<h3 className="text-xl font-bold text-white">{planetInfo.name}</h3>
-				<div className="space-y-2">
-					<div className="space-y-1">
-						<div className="text-sm font-medium text-gray-400">
-							Distance from Sun
-						</div>
-						<div className="text-sm text-white">
-							{planetInfo.distanceFromSun}
-						</div>
-					</div>
-					<div className="space-y-1">
-						<div className="text-sm font-medium text-gray-400">Diameter</div>
-						<div className="text-sm text-white">{planetInfo.diameter}</div>
-					</div>
-					<div className="space-y-1">
-						<div className="text-sm font-medium text-gray-400">Day Length</div>
-						<div className="text-sm text-white">{planetInfo.dayLength}</div>
-					</div>
-					<div className="space-y-1">
-						<div className="text-sm font-medium text-gray-400">Year Length</div>
-						<div className="text-sm text-white">{planetInfo.yearLength}</div>
-					</div>
-					<div className="space-y-1">
-						<div className="text-sm font-medium text-gray-400">Temperature</div>
-						<div className="text-sm text-white">{planetInfo.temperature}</div>
-					</div>
-					<div className="pt-2 text-sm text-blue-300 italic">
-						{planetInfo.funFact}
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+		<g className="rotation-indicator" transform="translate(-250, 250)">
+			<path
+				d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 0 -${radius}`}
+				fill="none"
+				stroke="#333"
+				strokeWidth="3"
+				strokeLinecap="round"
+			/>
+
+			<path
+				d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 ${x} ${y}`}
+				fill="none"
+				stroke="#4A9BFF"
+				strokeWidth="3"
+				strokeLinecap="round"
+			/>
+
+			<circle cx={x} cy={y} r="2" fill="#4A9BFF" />
+
+			<text
+				x={-radius - 5}
+				y="0"
+				fill="#888"
+				fontSize="10"
+				dominantBaseline="middle"
+				textAnchor="end"
+			>
+				F
+			</text>
+			<text x="0" y={-radius - 5} fill="#888" fontSize="10" textAnchor="middle">
+				T
+			</text>
+		</g>
 	);
 };
 
 const SolarSystem = () => {
-	const [rotationX, setRotationX] = useState(0);
 	const [isDragging, setIsDragging] = useState(false);
 	const [lastY, setLastY] = useState(0);
-	const [hoveredPlanet, setHoveredPlanet] = useState(null);
 
-	const planetOrder = [
-		"mercury",
-		"venus",
-		"earth",
-		"mars",
-		"jupiter",
-		"saturn",
-		"uranus",
-		"neptune",
-	];
+	const [{ rotationX }, setSpring] = useSpring(() => ({
+		rotationX: 0,
+		config: { tension: 180, friction: 12 },
+	}));
 
 	const planets = [
 		{ orbitRadius: 50, period: 1, size: 3, color: "#FF6B4A" },
@@ -231,9 +162,9 @@ const SolarSystem = () => {
 		if (!isDragging) return;
 		const deltaY = e.clientY - lastY;
 
-		setRotationX((prev) => {
-			const newRotation = prev - deltaY * 0.5;
-			return Math.min(90, Math.max(0, newRotation));
+		setSpring({
+			rotationX: Math.min(90, Math.max(0, rotationX.get() - deltaY * 0.5)),
+			immediate: true,
 		});
 
 		setLastY(e.clientY);
@@ -242,61 +173,58 @@ const SolarSystem = () => {
 	const handleMouseUp = () => {
 		setIsDragging(false);
 
-		if (rotationX < 15) {
-			setRotationX(0);
-		} else if (rotationX > 75) {
-			setRotationX(90);
+		const currentRotation = rotationX.get();
+		if (currentRotation < 45) {
+			// Snap to front view with spring animation
+			setSpring({
+				rotationX: 0,
+				config: { tension: 120, friction: 14 },
+			});
+		} else {
+			// Snap to top view with spring animation
+			setSpring({
+				rotationX: 90,
+				config: { tension: 120, friction: 14 },
+			});
 		}
 	};
 
-	const rotationProgress = (rotationX / 90) * 100;
+	const rotationProgress = (rotationX.get() / 90) * 100;
 
 	return (
-		<div className="w-full max-w-4xl bg-gray-900 rounded-lg p-6 relative">
-			<div
-				className="aspect-square cursor-ns-resize"
-				onMouseDown={handleMouseDown}
-				onMouseMove={handleMouseMove}
-				onMouseUp={handleMouseUp}
-				onMouseLeave={handleMouseUp}
-			>
-				<svg viewBox="-300 -300 600 600">
-					<circle
-						cx={0}
-						cy={0}
-						r={20}
-						fill="#FFE03D"
-						className="sun"
-						style={{ filter: "brightness(1.2)" }}
-					>
-						<animate
-							attributeName="r"
-							values="20;22;20"
-							dur="2s"
-							repeatCount="indefinite"
-						/>
-					</circle>
+		<div className="flex items-center justify-center w-full min-h-screen bg-gray-900">
+			<div className="w-full max-w-4xl h-[80vh] bg-gray-900 rounded-lg relative flex items-center justify-center">
+				<div
+					className="w-[80vh] h-[80vh] cursor-ns-resize"
+					onMouseDown={handleMouseDown}
+					onMouseMove={handleMouseMove}
+					onMouseUp={handleMouseUp}
+					onMouseLeave={handleMouseUp}
+				>
+					<svg viewBox="-300 -300 600 600" className="w-full h-full">
+						<circle
+							cx={0}
+							cy={0}
+							r={20}
+							fill="#FFE03D"
+							className="sun"
+							style={{ filter: "brightness(1.2)" }}
+						>
+							<animate
+								attributeName="r"
+								values="20;22;20"
+								dur="2s"
+								repeatCount="indefinite"
+							/>
+						</circle>
 
-					{planets.map((planet, index) => (
-						<Planet
-							key={index}
-							{...planet}
-							rotationX={rotationX}
-							planetIndex={index}
-							onHover={setHoveredPlanet}
-						/>
-					))}
+						{planets.map((planet, index) => (
+							<Planet key={index} {...planet} rotationX={rotationX} />
+						))}
 
-					<RotationIndicator rotation={rotationProgress} />
-				</svg>
-
-				{hoveredPlanet !== null && (
-					<InfoCard planetInfo={PLANET_INFO[planetOrder[hoveredPlanet]]} />
-				)}
-			</div>
-
-			<div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-200 text-sm bg-gray-800/90 backdrop-blur rounded-xl px-4 py-2 shadow-lg border border-gray-700">
-				Drag vertically to switch between views
+						<RotationIndicator rotation={rotationProgress} />
+					</svg>
+				</div>
 			</div>
 		</div>
 	);
