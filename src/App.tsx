@@ -1,23 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useSpring, animated, type SpringValue } from "react-spring";
 import { Calc } from "./utils/planetCalculations";
+import { createPortal } from "react-dom";
 
-// Update Tooltip component to be fixed position
-const Tooltip = ({ planet }) => (
-	<foreignObject
-		x={200} // Fixed position in bottom right
-		y={200}
-		width="160"
-		height="80"
-		style={{ overflow: "visible" }}
-	>
-		<div className="bg-gray-800 text-white p-2 rounded-lg text-sm shadow-lg">
-			<div className="font-bold">{planet.name}</div>
-			<div>Distance from Sun: {planet.distanceFromSun} AU</div>
-			<div>Orbital period: {planet.period} Earth years</div>
-		</div>
-	</foreignObject>
-);
+// Update Tooltip component to use fixed positioning
+const Tooltip = ({ planet }) =>
+	createPortal(
+		<div className="fixed bottom-8 right-8 bg-gray-800 text-white p-4 rounded-lg shadow-lg z-50 w-[280px]">
+			<div className="text-lg font-bold mb-2">{planet.name}</div>
+			<div className="space-y-1">
+				<div>Distance from Sun: {planet.distanceFromSun} AU</div>
+				<div>Orbital period: {planet.period} Earth years</div>
+			</div>
+		</div>,
+		document.body,
+	);
 
 const Planet = ({
 	orbitRadius,
@@ -29,10 +26,12 @@ const Planet = ({
 	distanceFromSun,
 	eccentricity = 0.2, // Add eccentricity parameter
 	isHovered,
+	isDragging, // Add this prop
 }: {
 	rotationX: SpringValue<number>;
 	eccentricity?: number;
 	isHovered: boolean;
+	isDragging: boolean;
 	[key: string]: any;
 }) => {
 	const [angle, setAngle] = useState(Math.random() * 360);
@@ -49,12 +48,14 @@ const Planet = ({
 	}, [scaledPeriod]);
 
 	return (
-		<g className="planet-group">
+		<g
+			className="planet-group"
+			style={{ pointerEvents: isDragging ? "none" : "auto" }}
+		>
 			<animated.path
-				d={rotationX.to((rot) => {
-					const rotX = (rot * Math.PI) / 180;
-					return Calc.getOrbitPath(orbitRadius, eccentricity, rotX);
-				})}
+				d={rotationX.to((rot) =>
+					Calc.getOrbitPath(orbitRadius, eccentricity, rot),
+				)}
 				fill="none"
 				stroke={isHovered ? "#999" : "#666"}
 				strokeWidth={isHovered ? "2" : "1"}
@@ -77,34 +78,18 @@ const Planet = ({
 
 			<animated.circle
 				cx={rotationX.to((rot) => {
-					const rotX = (rot * Math.PI) / 180;
-					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rotX);
+					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rot);
 					return pos.x;
 				})}
 				cy={rotationX.to((rot) => {
-					const rotX = (rot * Math.PI) / 180;
-					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rotX);
+					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rot);
 					return pos.y;
 				})}
-				r={rotationX.to((rot) => {
-					const rotX = (rot * Math.PI) / 180;
-					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rotX);
-					return size * pos.scale;
-				})}
+				r={size}
 				fill={color}
 				className="planet cursor-pointer"
 				style={{
 					filter: "saturate(1.2) brightness(1.1)",
-					opacity: rotationX.to((rot) => {
-						const rotX = (rot * Math.PI) / 180;
-						const pos = Calc.getPosition(
-							angle,
-							orbitRadius,
-							eccentricity,
-							rotX,
-						);
-						return Calc.getOpacity(pos.z);
-					}),
 				}}
 			/>
 			{isHovered && <Tooltip planet={{ name, period, distanceFromSun }} />}
@@ -242,14 +227,17 @@ const SolarSystem = () => {
 	];
 
 	const handleMouseDown = (e) => {
+		if (e.button !== 0) return; // Only handle left mouse button
 		setIsDragging(true);
 		setLastY(e.clientY);
+		setHoveredPlanet(null); // Clear hover state when starting drag
 	};
 
 	const handleMouseMove = (e) => {
 		if (!isDragging) return;
 		const deltaY = e.clientY - lastY;
 
+		// Much more sensitive rotation
 		setSpring({
 			rotationX: Math.min(90, Math.max(0, rotationX.get() - deltaY * 0.5)),
 			immediate: true,
@@ -281,17 +269,22 @@ const SolarSystem = () => {
 
 	return (
 		<div className="flex items-center justify-center w-full min-h-screen bg-gray-900">
-			<div className="w-full max-w-5xl h-[90vh] bg-gray-900 rounded-lg relative">
+			<div className="w-full h-[90vh] bg-gray-900 rounded-lg relative">
+				{" "}
+				{/* Removed pr-32 */} {/* Added pr-80 */} {/* Removed max-w-5xl */}
 				<div className="absolute inset-0 flex items-center justify-center">
-					<div
-						className="w-[90vh] h-[90vh] cursor-ns-resize relative"
-						onMouseDown={handleMouseDown}
-						onMouseMove={handleMouseMove}
-						onMouseUp={handleMouseUp}
-						onMouseLeave={handleMouseUp}
-					>
-						{/* biome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
-						<svg viewBox="-300 -300 600 600" className="w-full h-full">
+					<div className="w-full h-[90vh] relative">
+						{" "}
+						{/* Changed from w-[90vh] to w-full */}
+						<svg
+							viewBox="-300 -300 600 600"
+							className="w-full h-full"
+							onMouseDown={handleMouseDown}
+							onMouseMove={handleMouseMove}
+							onMouseUp={handleMouseUp}
+							onMouseLeave={handleMouseUp}
+							style={{ cursor: isDragging ? "grabbing" : "grab" }}
+						>
 							<circle
 								cx={0}
 								cy={0}
@@ -300,6 +293,7 @@ const SolarSystem = () => {
 								className="sun"
 								style={{ filter: "brightness(1.2)" }}
 							>
+								<title>Sun</title>
 								<animate
 									attributeName="r"
 									values="20;22;20"
@@ -311,13 +305,14 @@ const SolarSystem = () => {
 							{planets.map((planet, index) => (
 								<g
 									key={index}
-									onMouseEnter={() => setHoveredPlanet(index)}
-									onMouseLeave={() => setHoveredPlanet(null)}
+									onMouseEnter={() => !isDragging && setHoveredPlanet(index)}
+									onMouseLeave={() => !isDragging && setHoveredPlanet(null)}
 								>
 									<Planet
 										{...planet}
 										rotationX={rotationX}
 										isHovered={hoveredPlanet === index}
+										isDragging={isDragging}
 									/>
 								</g>
 							))}

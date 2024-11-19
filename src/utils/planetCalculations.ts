@@ -3,10 +3,6 @@ export const Calc = {
 		return orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
 	},
 
-	getScale(z: number): number {
-		return 1000 / (1000 + z);
-	},
-
 	getPosition(
 		angle: number,
 		orbitRadius: number,
@@ -14,15 +10,20 @@ export const Calc = {
 		rotX: number,
 	) {
 		const angleRad = (angle * Math.PI) / 180;
+		const rotationScale = Math.cos((rotX * Math.PI) / 180);
 		const semiMajor = orbitRadius;
 		const semiMinor = this.getSemiMinor(orbitRadius, eccentricity);
+		const c = semiMajor * eccentricity;
 
-		const x = Math.cos(angleRad) * semiMajor;
-		const y = Math.sin(angleRad) * semiMinor * Math.cos(rotX);
-		const z = Math.sin(angleRad) * semiMinor * Math.sin(rotX);
-		const scale = this.getScale(z);
+		// Calculate elliptical position
+		const x = semiMajor * Math.cos(angleRad) - c;
+		const y = semiMinor * Math.sin(angleRad) * rotationScale;
 
-		return { x: x * scale, y: y * scale, z, scale };
+		return {
+			x,
+			y,
+			scale: 1, // No more perspective scaling needed
+		};
 	},
 
 	getOrbitPath(
@@ -31,17 +32,10 @@ export const Calc = {
 		rotX: number,
 	): string {
 		const points = [];
-		const semiMajor = orbitRadius;
-		const semiMinor = this.getSemiMinor(orbitRadius, eccentricity);
-
 		for (let i = 0; i <= 360; i += 5) {
 			const pos = this.getPosition(i, orbitRadius, eccentricity, rotX);
 			points.push(`${pos.x},${pos.y}`);
 		}
 		return `M ${points.join(" L ")} Z`;
-	},
-
-	getOpacity(z: number): number {
-		return Math.min(1, Math.max(0.5, (z + 1000) / 1500));
 	},
 };
