@@ -2,10 +2,11 @@ import React, { useState, useEffect } from "react";
 import { useSpring, animated, type SpringValue } from "react-spring";
 import { Calc } from "./utils/planetCalculations";
 
-const Tooltip = ({ x, y, planet }) => (
+// Update Tooltip component to be fixed position
+const Tooltip = ({ planet }) => (
 	<foreignObject
-		x={x}
-		y={y - 80}
+		x={200} // Fixed position in bottom right
+		y={200}
 		width="160"
 		height="80"
 		style={{ overflow: "visible" }}
@@ -27,15 +28,16 @@ const Planet = ({
 	name,
 	distanceFromSun,
 	eccentricity = 0.2, // Add eccentricity parameter
+	isHovered,
 }: {
 	rotationX: SpringValue<number>;
 	eccentricity?: number;
+	isHovered: boolean;
 	[key: string]: any;
 }) => {
 	const [angle, setAngle] = useState(Math.random() * 360);
 	const scaledPeriod = period * 8;
 	const speedMultiplier = 3;
-	const [isHovered, setIsHovered] = useState(false);
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -47,16 +49,30 @@ const Planet = ({
 	}, [scaledPeriod]);
 
 	return (
-		<>
+		<g className="planet-group">
 			<animated.path
 				d={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
 					return Calc.getOrbitPath(orbitRadius, eccentricity, rotX);
 				})}
 				fill="none"
-				stroke="#666"
-				strokeWidth="1"
-				opacity="0.6"
+				stroke={isHovered ? "#999" : "#666"}
+				strokeWidth={isHovered ? "2" : "1"}
+				opacity={isHovered ? "0.8" : "0.6"}
+				className="orbit-path"
+			/>
+
+			{/* Invisible wider path for better hover detection */}
+			<animated.path
+				d={rotationX.to((rot) => {
+					const rotX = (rot * Math.PI) / 180;
+					return Calc.getOrbitPath(orbitRadius, eccentricity, rotX);
+				})}
+				fill="none"
+				stroke="transparent"
+				strokeWidth="20"
+				className="orbit-hover-area"
+				style={{ cursor: "pointer" }}
 			/>
 
 			<animated.circle
@@ -76,9 +92,7 @@ const Planet = ({
 					return size * pos.scale;
 				})}
 				fill={color}
-				className="planet"
-				onMouseEnter={() => setIsHovered(true)}
-				onMouseLeave={() => setIsHovered(false)}
+				className="planet cursor-pointer"
 				style={{
 					filter: "saturate(1.2) brightness(1.1)",
 					opacity: rotationX.to((rot) => {
@@ -93,32 +107,8 @@ const Planet = ({
 					}),
 				}}
 			/>
-			{isHovered && (
-				<Tooltip
-					x={rotationX.to((rot) => {
-						const rotX = (rot * Math.PI) / 180;
-						const pos = Calc.getPosition(
-							angle,
-							orbitRadius,
-							eccentricity,
-							rotX,
-						);
-						return pos.x;
-					})}
-					y={rotationX.to((rot) => {
-						const rotX = (rot * Math.PI) / 180;
-						const pos = Calc.getPosition(
-							angle,
-							orbitRadius,
-							eccentricity,
-							rotX,
-						);
-						return pos.y;
-					})}
-					planet={{ name, period, distanceFromSun }}
-				/>
-			)}
-		</>
+			{isHovered && <Tooltip planet={{ name, period, distanceFromSun }} />}
+		</g>
 	);
 };
 
@@ -169,6 +159,7 @@ const RotationIndicator = ({ rotation }) => {
 const SolarSystem = () => {
 	const [isDragging, setIsDragging] = useState(false);
 	const [lastY, setLastY] = useState(0);
+	const [hoveredPlanet, setHoveredPlanet] = useState(null);
 
 	const [{ rotationX }, setSpring] = useSpring(() => ({
 		rotationX: 0,
@@ -318,8 +309,17 @@ const SolarSystem = () => {
 							</circle>
 
 							{planets.map((planet, index) => (
-								// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-								<Planet key={index} {...planet} rotationX={rotationX} />
+								<g
+									key={index}
+									onMouseEnter={() => setHoveredPlanet(index)}
+									onMouseLeave={() => setHoveredPlanet(null)}
+								>
+									<Planet
+										{...planet}
+										rotationX={rotationX}
+										isHovered={hoveredPlanet === index}
+									/>
+								</g>
 							))}
 
 							<RotationIndicator rotation={rotationProgress} />
