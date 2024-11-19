@@ -98,46 +98,54 @@ const Planet = ({
 };
 
 const RotationIndicator = ({ rotation }) => {
-	const radius = 20; // Changed from 30
+	const radius = 20;
 	const angle = (rotation * 90) / 100 - 90;
-
 	const x = radius * Math.cos((angle * Math.PI) / 180);
 	const y = radius * Math.sin((angle * Math.PI) / 180);
 
-	return (
-		<g className="rotation-indicator" transform="translate(-250, 250)">
-			<path
-				d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 0 -${radius}`}
-				fill="none"
-				stroke="#333"
-				strokeWidth="3"
-				strokeLinecap="round"
-			/>
+	return createPortal(
+		<div className="fixed left-8 bottom-8 bg-gray-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg z-50">
+			<svg width="50" height="50" viewBox="-25 -25 50 50">
+				<path
+					d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 0 -${radius}`}
+					fill="none"
+					stroke="#555"
+					strokeWidth="3"
+					strokeLinecap="round"
+				/>
 
-			<path
-				d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 ${x} ${y}`}
-				fill="none"
-				stroke="#4A9BFF"
-				strokeWidth="3"
-				strokeLinecap="round"
-			/>
+				<path
+					d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 ${x} ${y}`}
+					fill="none"
+					stroke="#4A9BFF"
+					strokeWidth="3"
+					strokeLinecap="round"
+				/>
 
-			<circle cx={x} cy={y} r="2" fill="#4A9BFF" />
+				<circle cx={x} cy={y} r="2" fill="#4A9BFF" />
 
-			<text
-				x={-radius - 5}
-				y="0"
-				fill="#888"
-				fontSize="10"
-				dominantBaseline="middle"
-				textAnchor="end"
-			>
-				F
-			</text>
-			<text x="0" y={-radius - 5} fill="#888" fontSize="10" textAnchor="middle">
-				T
-			</text>
-		</g>
+				<text
+					x={-radius - 5}
+					y="0"
+					fill="white"
+					fontSize="10"
+					dominantBaseline="middle"
+					textAnchor="end"
+				>
+					F
+				</text>
+				<text
+					x="0"
+					y={-radius - 5}
+					fill="white"
+					fontSize="10"
+					textAnchor="middle"
+				>
+					T
+				</text>
+			</svg>
+		</div>,
+		document.body,
 	);
 };
 
@@ -316,12 +324,11 @@ const SolarSystem = () => {
 									/>
 								</g>
 							))}
-
-							<RotationIndicator rotation={rotationProgress} />
 						</svg>
 					</div>
 				</div>
 			</div>
+			<RotationIndicator rotation={rotationProgress} />
 		</div>
 	);
 };
