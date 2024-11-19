@@ -1,19 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { useSpring, animated, SpringValue } from "react-spring";
 
+const Tooltip = ({ x, y, planet }) => (
+	<foreignObject
+		x={x}
+		y={y - 80}
+		width="160"
+		height="80"
+		style={{ overflow: "visible" }}
+	>
+		<div className="bg-gray-800 text-white p-2 rounded-lg text-sm shadow-lg">
+			<div className="font-bold">{planet.name}</div>
+			<div>Distance from Sun: {planet.distanceFromSun} AU</div>
+			<div>Orbital period: {planet.period} Earth years</div>
+		</div>
+	</foreignObject>
+);
+
 const Planet = ({
 	orbitRadius,
 	period,
 	size,
 	color,
 	rotationX,
+	name,
+	distanceFromSun,
+	eccentricity = 0.2, // Add eccentricity parameter
 }: {
 	rotationX: SpringValue<number>;
+	eccentricity?: number;
 	[key: string]: any;
 }) => {
 	const [angle, setAngle] = useState(Math.random() * 360);
 	const scaledPeriod = period * 8;
 	const speedMultiplier = 3;
+	const [isHovered, setIsHovered] = useState(false);
 
 	useEffect(() => {
 		const interval = setInterval(() => {
@@ -30,11 +51,15 @@ const Planet = ({
 				d={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
 					const points = [];
+					const semiMajor = orbitRadius;
+					const semiMinor =
+						orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
+
 					for (let i = 0; i <= 360; i += 5) {
 						const angleRad = (i * Math.PI) / 180;
-						const x = Math.cos(angleRad) * orbitRadius;
-						const y = Math.sin(angleRad) * orbitRadius * Math.cos(rotX);
-						const z = Math.sin(angleRad) * orbitRadius * Math.sin(rotX);
+						const x = Math.cos(angleRad) * semiMajor;
+						const y = Math.sin(angleRad) * semiMinor * Math.cos(rotX);
+						const z = Math.sin(angleRad) * semiMinor * Math.sin(rotX);
 						const scale = 1000 / (1000 + z);
 						points.push(`${x * scale},${y * scale}`);
 					}
@@ -49,20 +74,23 @@ const Planet = ({
 			<animated.circle
 				cx={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
-					const x = Math.cos((angle * Math.PI) / 180) * orbitRadius;
-					const y =
-						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.cos(rotX);
+					const semiMajor = orbitRadius;
+					const semiMinor =
+						orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
+					const x = Math.cos((angle * Math.PI) / 180) * semiMajor;
 					const z =
-						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+						Math.sin((angle * Math.PI) / 180) * semiMinor * Math.sin(rotX);
 					const scale = 1000 / (1000 + z);
 					return x * scale;
 				})}
 				cy={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
+					const semiMinor =
+						orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
 					const y =
-						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.cos(rotX);
+						Math.sin((angle * Math.PI) / 180) * semiMinor * Math.cos(rotX);
 					const z =
-						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+						Math.sin((angle * Math.PI) / 180) * semiMinor * Math.sin(rotX);
 					const scale = 1000 / (1000 + z);
 					return y * scale;
 				})}
@@ -83,8 +111,32 @@ const Planet = ({
 							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
 						return Math.min(1, Math.max(0.5, (z + 1000) / 1500));
 					}),
+					onMouseEnter: () => setIsHovered(true),
+					onMouseLeave: () => setIsHovered(false),
 				}}
 			/>
+			{isHovered && (
+				<Tooltip
+					x={rotationX.to((rot) => {
+						const rotX = (rot * Math.PI) / 180;
+						const x = Math.cos((angle * Math.PI) / 180) * orbitRadius;
+						const z =
+							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+						const scale = 1000 / (1000 + z);
+						return x * scale;
+					})}
+					y={rotationX.to((rot) => {
+						const rotX = (rot * Math.PI) / 180;
+						const y =
+							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.cos(rotX);
+						const z =
+							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
+						const scale = 1000 / (1000 + z);
+						return y * scale;
+					})}
+					planet={{ name, period, distanceFromSun }}
+				/>
+			)}
 		</>
 	);
 };
@@ -143,14 +195,78 @@ const SolarSystem = () => {
 	}));
 
 	const planets = [
-		{ orbitRadius: 50, period: 1, size: 3, color: "#FF6B4A" },
-		{ orbitRadius: 75, period: 1.5, size: 6, color: "#FFB74A" },
-		{ orbitRadius: 100, period: 2, size: 6, color: "#4A9BFF" },
-		{ orbitRadius: 125, period: 2.5, size: 4, color: "#FF4A4A" },
-		{ orbitRadius: 170, period: 3, size: 15, color: "#FFD700" },
-		{ orbitRadius: 210, period: 3.5, size: 12, color: "#FFA54A" },
-		{ orbitRadius: 250, period: 4, size: 8, color: "#4AE1FF" },
-		{ orbitRadius: 290, period: 4.5, size: 8, color: "#4A4AFF" },
+		{
+			orbitRadius: 40,
+			period: 0.24,
+			size: 3,
+			color: "#A0522D",
+			name: "Mercury",
+			distanceFromSun: 0.39,
+			eccentricity: 0.206, // Most eccentric orbit in solar system
+		},
+		{
+			orbitRadius: 60,
+			period: 0.62,
+			size: 6,
+			color: "#DEB887",
+			name: "Venus",
+			distanceFromSun: 0.72,
+			eccentricity: 0.007, // Nearly circular orbit
+		},
+		{
+			orbitRadius: 80,
+			period: 1,
+			size: 6.4,
+			color: "#4169E1",
+			name: "Earth",
+			distanceFromSun: 1,
+			eccentricity: 0.0167, // Reference for scale
+		},
+		{
+			orbitRadius: 100,
+			period: 1.88,
+			size: 4,
+			color: "#CD853F",
+			name: "Mars",
+			distanceFromSun: 1.52,
+			eccentricity: 0.0934, // Notably eccentric
+		},
+		{
+			orbitRadius: 140,
+			period: 11.86,
+			size: 12,
+			color: "#DAA520",
+			name: "Jupiter",
+			distanceFromSun: 5.2,
+			eccentricity: 0.0489,
+		},
+		{
+			orbitRadius: 180,
+			period: 29.46,
+			size: 10,
+			color: "#F4C430",
+			name: "Saturn",
+			distanceFromSun: 9.54,
+			eccentricity: 0.0542,
+		},
+		{
+			orbitRadius: 220,
+			period: 84.01,
+			size: 8,
+			color: "#87CEEB",
+			name: "Uranus",
+			distanceFromSun: 19.18,
+			eccentricity: 0.0472,
+		},
+		{
+			orbitRadius: 260,
+			period: 164.79,
+			size: 7.8,
+			color: "#1E90FF",
+			name: "Neptune",
+			distanceFromSun: 30.06,
+			eccentricity: 0.0086, // Almost circular orbit
+		},
 	];
 
 	const handleMouseDown = (e) => {
@@ -193,9 +309,9 @@ const SolarSystem = () => {
 
 	return (
 		<div className="flex items-center justify-center w-full min-h-screen bg-gray-900">
-			<div className="w-full max-w-4xl h-[80vh] bg-gray-900 rounded-lg relative flex items-center justify-center">
+			<div className="w-full max-w-5xl h-[90vh] bg-gray-900 rounded-lg relative flex items-center justify-center">
 				<div
-					className="w-[80vh] h-[80vh] cursor-ns-resize"
+					className="w-[90vh] h-[90vh] cursor-ns-resize"
 					onMouseDown={handleMouseDown}
 					onMouseMove={handleMouseMove}
 					onMouseUp={handleMouseUp}
