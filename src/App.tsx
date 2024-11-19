@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { useSpring, animated, SpringValue } from "react-spring";
+import { useSpring, animated, type SpringValue } from "react-spring";
+import { Calc } from "./utils/planetCalculations";
 
 const Tooltip = ({ x, y, planet }) => (
 	<foreignObject
@@ -50,20 +51,7 @@ const Planet = ({
 			<animated.path
 				d={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
-					const points = [];
-					const semiMajor = orbitRadius;
-					const semiMinor =
-						orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
-
-					for (let i = 0; i <= 360; i += 5) {
-						const angleRad = (i * Math.PI) / 180;
-						const x = Math.cos(angleRad) * semiMajor;
-						const y = Math.sin(angleRad) * semiMinor * Math.cos(rotX);
-						const z = Math.sin(angleRad) * semiMinor * Math.sin(rotX);
-						const scale = 1000 / (1000 + z);
-						points.push(`${x * scale},${y * scale}`);
-					}
-					return `M ${points.join(" L ")} Z`;
+					return Calc.getOrbitPath(orbitRadius, eccentricity, rotX);
 				})}
 				fill="none"
 				stroke="#666"
@@ -74,65 +62,58 @@ const Planet = ({
 			<animated.circle
 				cx={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
-					const semiMajor = orbitRadius;
-					const semiMinor =
-						orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
-					const x = Math.cos((angle * Math.PI) / 180) * semiMajor;
-					const z =
-						Math.sin((angle * Math.PI) / 180) * semiMinor * Math.sin(rotX);
-					const scale = 1000 / (1000 + z);
-					return x * scale;
+					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rotX);
+					return pos.x;
 				})}
 				cy={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
-					const semiMinor =
-						orbitRadius * Math.sqrt(1 - eccentricity * eccentricity);
-					const y =
-						Math.sin((angle * Math.PI) / 180) * semiMinor * Math.cos(rotX);
-					const z =
-						Math.sin((angle * Math.PI) / 180) * semiMinor * Math.sin(rotX);
-					const scale = 1000 / (1000 + z);
-					return y * scale;
+					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rotX);
+					return pos.y;
 				})}
 				r={rotationX.to((rot) => {
 					const rotX = (rot * Math.PI) / 180;
-					const z =
-						Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
-					const scale = 1000 / (1000 + z);
-					return size * scale;
+					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rotX);
+					return size * pos.scale;
 				})}
 				fill={color}
 				className="planet"
+				onMouseEnter={() => setIsHovered(true)}
+				onMouseLeave={() => setIsHovered(false)}
 				style={{
 					filter: "saturate(1.2) brightness(1.1)",
 					opacity: rotationX.to((rot) => {
 						const rotX = (rot * Math.PI) / 180;
-						const z =
-							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
-						return Math.min(1, Math.max(0.5, (z + 1000) / 1500));
+						const pos = Calc.getPosition(
+							angle,
+							orbitRadius,
+							eccentricity,
+							rotX,
+						);
+						return Calc.getOpacity(pos.z);
 					}),
-					onMouseEnter: () => setIsHovered(true),
-					onMouseLeave: () => setIsHovered(false),
 				}}
 			/>
 			{isHovered && (
 				<Tooltip
 					x={rotationX.to((rot) => {
 						const rotX = (rot * Math.PI) / 180;
-						const x = Math.cos((angle * Math.PI) / 180) * orbitRadius;
-						const z =
-							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
-						const scale = 1000 / (1000 + z);
-						return x * scale;
+						const pos = Calc.getPosition(
+							angle,
+							orbitRadius,
+							eccentricity,
+							rotX,
+						);
+						return pos.x;
 					})}
 					y={rotationX.to((rot) => {
 						const rotX = (rot * Math.PI) / 180;
-						const y =
-							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.cos(rotX);
-						const z =
-							Math.sin((angle * Math.PI) / 180) * orbitRadius * Math.sin(rotX);
-						const scale = 1000 / (1000 + z);
-						return y * scale;
+						const pos = Calc.getPosition(
+							angle,
+							orbitRadius,
+							eccentricity,
+							rotX,
+						);
+						return pos.y;
 					})}
 					planet={{ name, period, distanceFromSun }}
 				/>
@@ -309,37 +290,41 @@ const SolarSystem = () => {
 
 	return (
 		<div className="flex items-center justify-center w-full min-h-screen bg-gray-900">
-			<div className="w-full max-w-5xl h-[90vh] bg-gray-900 rounded-lg relative flex items-center justify-center">
-				<div
-					className="w-[90vh] h-[90vh] cursor-ns-resize"
-					onMouseDown={handleMouseDown}
-					onMouseMove={handleMouseMove}
-					onMouseUp={handleMouseUp}
-					onMouseLeave={handleMouseUp}
-				>
-					<svg viewBox="-300 -300 600 600" className="w-full h-full">
-						<circle
-							cx={0}
-							cy={0}
-							r={20}
-							fill="#FFE03D"
-							className="sun"
-							style={{ filter: "brightness(1.2)" }}
-						>
-							<animate
-								attributeName="r"
-								values="20;22;20"
-								dur="2s"
-								repeatCount="indefinite"
-							/>
-						</circle>
+			<div className="w-full max-w-5xl h-[90vh] bg-gray-900 rounded-lg relative">
+				<div className="absolute inset-0 flex items-center justify-center">
+					<div
+						className="w-[90vh] h-[90vh] cursor-ns-resize relative"
+						onMouseDown={handleMouseDown}
+						onMouseMove={handleMouseMove}
+						onMouseUp={handleMouseUp}
+						onMouseLeave={handleMouseUp}
+					>
+						{/* biome-ignore lint/a11y/noSvgWithoutTitle: <explanation> */}
+						<svg viewBox="-300 -300 600 600" className="w-full h-full">
+							<circle
+								cx={0}
+								cy={0}
+								r={20}
+								fill="#FFE03D"
+								className="sun"
+								style={{ filter: "brightness(1.2)" }}
+							>
+								<animate
+									attributeName="r"
+									values="20;22;20"
+									dur="2s"
+									repeatCount="indefinite"
+								/>
+							</circle>
 
-						{planets.map((planet, index) => (
-							<Planet key={index} {...planet} rotationX={rotationX} />
-						))}
+							{planets.map((planet, index) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+								<Planet key={index} {...planet} rotationX={rotationX} />
+							))}
 
-						<RotationIndicator rotation={rotationProgress} />
-					</svg>
+							<RotationIndicator rotation={rotationProgress} />
+						</svg>
+					</div>
 				</div>
 			</div>
 		</div>
