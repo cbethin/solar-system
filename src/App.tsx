@@ -1,164 +1,141 @@
-import React, { useState, useEffect } from "react";
-import { useSpring, animated, type SpringValue } from "react-spring";
+import React, { useRef, useState, useMemo } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Html } from "@react-three/drei";
+import * as THREE from "three";
 import { Calc } from "./utils/planetCalculations";
-import { createPortal } from "react-dom";
-
-// Update Tooltip component to use fixed positioning
-const Tooltip = ({ planet }) =>
-	createPortal(
-		<div className="fixed bottom-8 right-8 bg-gray-800 text-white p-4 rounded-lg shadow-lg z-50 w-[280px]">
-			<div className="text-lg font-bold mb-2">{planet.name}</div>
-			<div className="space-y-1">
-				<div>Distance from Sun: {planet.distanceFromSun} AU</div>
-				<div>Orbital period: {planet.period} Earth years</div>
-			</div>
-		</div>,
-		document.body,
-	);
 
 const Planet = ({
 	orbitRadius,
 	period,
 	size,
 	color,
-	rotationX,
 	name,
+	eccentricity,
 	distanceFromSun,
-	eccentricity = 0.2, // Add eccentricity parameter
-	isHovered,
-	isDragging, // Add this prop
-}: {
-	rotationX: SpringValue<number>;
-	eccentricity?: number;
-	isHovered: boolean;
-	isDragging: boolean;
-	[key: string]: any;
 }) => {
 	const [angle, setAngle] = useState(Math.random() * 360);
+	const [isHovered, setIsHovered] = useState(false);
+	const meshRef = useRef();
 	const scaledPeriod = period * 8;
 	const speedMultiplier = 3;
 
-	useEffect(() => {
-		const interval = setInterval(() => {
-			setAngle(
-				(prev) => (prev + (360 / scaledPeriod / 60) * speedMultiplier) % 360,
-			);
-		}, 16);
-		return () => clearInterval(interval);
-	}, [scaledPeriod]);
+	useFrame((state, delta) => {
+		setAngle(
+			(prev) => (prev + (360 / scaledPeriod / 60) * speedMultiplier) % 360,
+		);
+		if (meshRef.current) {
+			const position = Calc.getOrbitPosition(angle, orbitRadius, eccentricity);
+			meshRef.current.position.copy(position);
+		}
+	});
 
 	return (
-		<g
-			className="planet-group"
-			style={{ pointerEvents: isDragging ? "none" : "auto" }}
-		>
-			<animated.path
-				d={rotationX.to((rot) =>
-					Calc.getOrbitPath(orbitRadius, eccentricity, rot),
+		<group>
+			{/* Touch detection area */}
+			<mesh
+				onPointerEnter={() => setIsHovered(true)}
+				onPointerLeave={() => setIsHovered(false)}
+			>
+				<primitive
+					object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 8)}
+				/>
+				<meshBasicMaterial
+					color="#ffffff"
+					opacity={0}
+					transparent
+					depthWrite={false}
+					side={THREE.DoubleSide}
+				/>
+			</mesh>
+
+			{/* Visible orbit line */}
+			<mesh>
+				<primitive
+					object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 1.5)}
+				/>
+				<meshBasicMaterial
+					color={isHovered ? "#ffffff" : "#666666"}
+					opacity={isHovered ? 0.9 : 0.3}
+					transparent
+					depthWrite={false}
+					side={THREE.DoubleSide}
+				/>
+			</mesh>
+
+			{/* Planet Sphere */}
+			<mesh ref={meshRef}>
+				<sphereGeometry args={[size, 32, 32]} />
+				<meshBasicMaterial color={color} />
+				{isHovered && (
+					<Html
+						style={{
+							pointerEvents: "none",
+							userSelect: "none",
+						}}
+						position={[0, size + 5, 0]}
+						center
+					>
+						<div className="bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
+							{name}
+						</div>
+					</Html>
 				)}
-				fill="none"
-				stroke={isHovered ? "#999" : "#666"}
-				strokeWidth={isHovered ? "2" : "1"}
-				opacity={isHovered ? "0.8" : "0.6"}
-				className="orbit-path"
-			/>
-
-			{/* Invisible wider path for better hover detection */}
-			<animated.path
-				d={rotationX.to((rot) => {
-					const rotX = (rot * Math.PI) / 180;
-					return Calc.getOrbitPath(orbitRadius, eccentricity, rotX);
-				})}
-				fill="none"
-				stroke="transparent"
-				strokeWidth="20"
-				className="orbit-hover-area"
-				style={{ cursor: "pointer" }}
-			/>
-
-			<animated.circle
-				cx={rotationX.to((rot) => {
-					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rot);
-					return pos.x;
-				})}
-				cy={rotationX.to((rot) => {
-					const pos = Calc.getPosition(angle, orbitRadius, eccentricity, rot);
-					return pos.y;
-				})}
-				r={size}
-				fill={color}
-				className="planet cursor-pointer"
-				style={{
-					filter: "saturate(1.2) brightness(1.1)",
-				}}
-			/>
-			{isHovered && <Tooltip planet={{ name, period, distanceFromSun }} />}
-		</g>
+			</mesh>
+		</group>
 	);
 };
 
-const RotationIndicator = ({ rotation }) => {
-	const radius = 20;
-	const angle = (rotation * 90) / 100 - 90;
-	const x = radius * Math.cos((angle * Math.PI) / 180);
-	const y = radius * Math.sin((angle * Math.PI) / 180);
-
-	return createPortal(
-		<div className="fixed left-8 bottom-8 bg-gray-800/30 backdrop-blur-sm p-4 rounded-lg shadow-lg z-50">
-			<svg width="50" height="50" viewBox="-25 -25 50 50">
-				<path
-					d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 0 -${radius}`}
-					fill="none"
-					stroke="#555"
-					strokeWidth="3"
-					strokeLinecap="round"
-				/>
-
-				<path
-					d={`M -${radius} 0 A ${radius} ${radius} 0 0 1 ${x} ${y}`}
-					fill="none"
-					stroke="#4A9BFF"
-					strokeWidth="3"
-					strokeLinecap="round"
-				/>
-
-				<circle cx={x} cy={y} r="2" fill="#4A9BFF" />
-
-				<text
-					x={-radius - 5}
-					y="0"
-					fill="white"
-					fontSize="10"
-					dominantBaseline="middle"
-					textAnchor="end"
-				>
-					F
-				</text>
-				<text
-					x="0"
-					y={-radius - 5}
-					fill="white"
-					fontSize="10"
-					textAnchor="middle"
-				>
-					T
-				</text>
-			</svg>
-		</div>,
-		document.body,
+const Star = ({ position, size = 1 }) => {
+	return (
+		<group position={position}>
+			<mesh>
+				<sphereGeometry args={[0.35 * size, 4, 4]} />
+				<meshBasicMaterial color="#ffffff" />
+			</mesh>
+			<mesh>
+				<sphereGeometry args={[0.8 * size, 4, 4]} />
+				<meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
+			</mesh>
+			<pointLight distance={50} intensity={0.03} decay={2} />
+		</group>
 	);
 };
+
+const Stars = () => {
+	const count = 3000;
+	const stars = useMemo(() => {
+		const positions = [];
+		for (let i = 0; i < count; i++) {
+			positions.push({
+				position: [
+					(Math.random() - 0.5) * 2000,
+					(Math.random() - 0.5) * 2000,
+					(Math.random() - 0.5) * 2000,
+				],
+				size: Math.random() * 0.5 + 0.5, // Random size between 0.5 and 1
+			});
+		}
+		return positions;
+	}, []);
+
+	return (
+		<group>
+			{stars.map((star, i) => (
+				<Star key={i} position={star.position} size={star.size} />
+			))}
+		</group>
+	);
+};
+
+const Sun = () => (
+	<mesh>
+		<sphereGeometry args={[20, 32, 32]} />
+		<meshBasicMaterial color="#FFE03D" />
+		<pointLight intensity={0.8} distance={2000} decay={0} />
+	</mesh>
+);
 
 const SolarSystem = () => {
-	const [isDragging, setIsDragging] = useState(false);
-	const [lastY, setLastY] = useState(0);
-	const [hoveredPlanet, setHoveredPlanet] = useState(null);
-
-	const [{ rotationX }, setSpring] = useSpring(() => ({
-		rotationX: 0,
-		config: { tension: 180, friction: 12 },
-	}));
-
 	const planets = [
 		{
 			orbitRadius: 40,
@@ -234,101 +211,25 @@ const SolarSystem = () => {
 		},
 	];
 
-	const handleMouseDown = (e) => {
-		if (e.button !== 0) return; // Only handle left mouse button
-		setIsDragging(true);
-		setLastY(e.clientY);
-		setHoveredPlanet(null); // Clear hover state when starting drag
-	};
-
-	const handleMouseMove = (e) => {
-		if (!isDragging) return;
-		const deltaY = e.clientY - lastY;
-
-		// Much more sensitive rotation
-		setSpring({
-			rotationX: Math.min(90, Math.max(0, rotationX.get() - deltaY * 0.5)),
-			immediate: true,
-		});
-
-		setLastY(e.clientY);
-	};
-
-	const handleMouseUp = () => {
-		setIsDragging(false);
-
-		const currentRotation = rotationX.get();
-		if (currentRotation < 45) {
-			// Snap to front view with spring animation
-			setSpring({
-				rotationX: 0,
-				config: { tension: 120, friction: 14 },
-			});
-		} else {
-			// Snap to top view with spring animation
-			setSpring({
-				rotationX: 90,
-				config: { tension: 120, friction: 14 },
-			});
-		}
-	};
-
-	const rotationProgress = (rotationX.get() / 90) * 100;
-
 	return (
-		<div className="flex items-center justify-center w-full min-h-screen bg-gray-900">
-			<div className="w-full h-[90vh] bg-gray-900 rounded-lg relative">
-				{" "}
-				{/* Removed pr-32 */} {/* Added pr-80 */} {/* Removed max-w-5xl */}
-				<div className="absolute inset-0 flex items-center justify-center">
-					<div className="w-full h-[90vh] relative">
-						{" "}
-						{/* Changed from w-[90vh] to w-full */}
-						<svg
-							viewBox="-300 -300 600 600"
-							className="w-full h-full"
-							onMouseDown={handleMouseDown}
-							onMouseMove={handleMouseMove}
-							onMouseUp={handleMouseUp}
-							onMouseLeave={handleMouseUp}
-							style={{ cursor: isDragging ? "grabbing" : "grab" }}
-						>
-							<circle
-								cx={0}
-								cy={0}
-								r={20}
-								fill="#FFE03D"
-								className="sun"
-								style={{ filter: "brightness(1.2)" }}
-							>
-								<title>Sun</title>
-								<animate
-									attributeName="r"
-									values="20;22;20"
-									dur="2s"
-									repeatCount="indefinite"
-								/>
-							</circle>
-
-							{planets.map((planet, index) => (
-								<g
-									key={index}
-									onMouseEnter={() => !isDragging && setHoveredPlanet(index)}
-									onMouseLeave={() => !isDragging && setHoveredPlanet(null)}
-								>
-									<Planet
-										{...planet}
-										rotationX={rotationX}
-										isHovered={hoveredPlanet === index}
-										isDragging={isDragging}
-									/>
-								</g>
-							))}
-						</svg>
-					</div>
-				</div>
-			</div>
-			<RotationIndicator rotation={rotationProgress} />
+		<div className="w-full h-screen">
+			<Canvas camera={{ position: [0, 200, 400], fov: 70 }}>
+				<color attach="background" args={["#000010"]} />
+				<fog attach="fog" args={["#000010", 500, 1000]} />
+				<Stars />
+				<ambientLight intensity={1} />
+				<Sun />
+				{planets.map((planet, index) => (
+					<Planet key={index} {...planet} />
+				))}
+				<OrbitControls
+					enablePan={true}
+					enableZoom={false}
+					enableRotate={true}
+					minDistance={100}
+					maxDistance={1000}
+				/>
+			</Canvas>
 		</div>
 	);
 };
