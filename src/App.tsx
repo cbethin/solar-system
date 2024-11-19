@@ -34,12 +34,21 @@ const Planet = ({
 		}
 	});
 
+	const planetData = {
+		name,
+		period,
+		eccentricity,
+		distanceFromSun,
+		orbitRadius,
+		size,
+	};
+
 	return (
 		<group>
 			{/* Touch detection area */}
 			<mesh
 				onPointerEnter={() => {
-					setHoveredPlanet(name);
+					setHoveredPlanet(planetData);
 					setIsHovered(true);
 				}}
 				onPointerLeave={() => {
@@ -139,8 +148,16 @@ const Tooltip = ({ hoveredPlanet }) => {
 	if (!hoveredPlanet) return null;
 
 	return (
-		<div className="absolute bottom-4 left-4 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
-			{hoveredPlanet}
+		<div className="absolute bottom-4 left-4 bg-gray-800/90 text-white px-4 py-3 rounded text-sm">
+			<div className="font-bold mb-1">{hoveredPlanet.name}</div>
+			<div className="space-y-1">
+				<div>Orbital Period: {hoveredPlanet.period.toFixed(2)} Earth years</div>
+				<div>
+					Distance from Sun: {hoveredPlanet.distanceFromSun.toFixed(2)} AU
+				</div>
+				<div>Eccentricity: {hoveredPlanet.eccentricity.toFixed(4)}</div>
+				<div>Relative Size: {hoveredPlanet.size}x</div>
+			</div>
 		</div>
 	);
 };
