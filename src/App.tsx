@@ -1,8 +1,11 @@
-import React, { useRef, useState, useMemo } from "react";
+import React, { useRef, useState, useMemo, useContext } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { Calc } from "./utils/planetCalculations";
+import { BackSide } from "three";
+
+const PlanetContext = React.createContext(null);
 
 const Planet = ({
 	orbitRadius,
@@ -19,6 +22,8 @@ const Planet = ({
 	const scaledPeriod = period * 8;
 	const speedMultiplier = 3;
 
+	const { setHoveredPlanet } = useContext(PlanetContext);
+
 	useFrame((state, delta) => {
 		setAngle(
 			(prev) => (prev + (360 / scaledPeriod / 60) * speedMultiplier) % 360,
@@ -33,8 +38,14 @@ const Planet = ({
 		<group>
 			{/* Touch detection area */}
 			<mesh
-				onPointerEnter={() => setIsHovered(true)}
-				onPointerLeave={() => setIsHovered(false)}
+				onPointerEnter={() => {
+					setHoveredPlanet(name);
+					setIsHovered(true);
+				}}
+				onPointerLeave={() => {
+					setHoveredPlanet(null);
+					setIsHovered(false);
+				}}
 			>
 				<primitive
 					object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 8)}
@@ -55,7 +66,21 @@ const Planet = ({
 				/>
 				<meshBasicMaterial
 					color={isHovered ? "#ffffff" : "#666666"}
-					opacity={isHovered ? 0.9 : 0.3}
+					opacity={isHovered ? 0.8 : 0.3}
+					transparent
+					depthWrite={false}
+					side={THREE.DoubleSide}
+				/>
+			</mesh>
+
+			{/* Glow effect line (only visible on hover) */}
+			<mesh>
+				<primitive
+					object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 4)}
+				/>
+				<meshBasicMaterial
+					color="#ffffff"
+					opacity={isHovered ? 0.2 : 0}
 					transparent
 					depthWrite={false}
 					side={THREE.DoubleSide}
@@ -66,64 +91,39 @@ const Planet = ({
 			<mesh ref={meshRef}>
 				<sphereGeometry args={[size, 32, 32]} />
 				<meshBasicMaterial color={color} />
-				{isHovered && (
-					<Html
-						style={{
-							pointerEvents: "none",
-							userSelect: "none",
-						}}
-						position={[0, size + 5, 0]}
-						center
-					>
-						<div className="bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
-							{name}
-						</div>
-					</Html>
-				)}
 			</mesh>
 		</group>
 	);
 };
 
-const Star = ({ position, size = 1 }) => {
-	return (
-		<group position={position}>
-			<mesh>
-				<sphereGeometry args={[0.35 * size, 4, 4]} />
-				<meshBasicMaterial color="#ffffff" />
-			</mesh>
-			<mesh>
-				<sphereGeometry args={[0.8 * size, 4, 4]} />
-				<meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
-			</mesh>
-			<pointLight distance={50} intensity={0.03} decay={2} />
-		</group>
-	);
-};
-
-const Stars = () => {
-	const count = 3000;
-	const stars = useMemo(() => {
-		const positions = [];
+const StarField = () => {
+	const count = 500; // reduced from 2000 to 500
+	const positions = useMemo(() => {
+		const temp = new Float32Array(count * 3);
 		for (let i = 0; i < count; i++) {
-			positions.push({
-				position: [
-					(Math.random() - 0.5) * 2000,
-					(Math.random() - 0.5) * 2000,
-					(Math.random() - 0.5) * 2000,
-				],
-				size: Math.random() * 0.5 + 0.5, // Random size between 0.5 and 1
-			});
+			const radius = 500;
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.acos(2 * Math.random() - 1);
+
+			temp[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
+			temp[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+			temp[i * 3 + 2] = radius * Math.cos(phi);
 		}
-		return positions;
+		return temp;
 	}, []);
 
 	return (
-		<group>
-			{stars.map((star, i) => (
-				<Star key={i} position={star.position} size={star.size} />
-			))}
-		</group>
+		<points>
+			<bufferGeometry>
+				<bufferAttribute
+					attach="attributes-position"
+					count={count}
+					array={positions}
+					itemSize={3}
+				/>
+			</bufferGeometry>
+			<pointsMaterial size={2} color="#ffffff" sizeAttenuation={false} />
+		</points>
 	);
 };
 
@@ -135,7 +135,18 @@ const Sun = () => (
 	</mesh>
 );
 
+const Tooltip = ({ hoveredPlanet }) => {
+	if (!hoveredPlanet) return null;
+
+	return (
+		<div className="absolute bottom-4 left-4 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
+			{hoveredPlanet}
+		</div>
+	);
+};
+
 const SolarSystem = () => {
+	const [hoveredPlanet, setHoveredPlanet] = useState(null);
 	const planets = [
 		{
 			orbitRadius: 40,
@@ -212,25 +223,47 @@ const SolarSystem = () => {
 	];
 
 	return (
-		<div className="w-full h-screen">
-			<Canvas camera={{ position: [0, 200, 400], fov: 70 }}>
-				<color attach="background" args={["#000010"]} />
-				<fog attach="fog" args={["#000010", 500, 1000]} />
-				<Stars />
-				<ambientLight intensity={1} />
-				<Sun />
-				{planets.map((planet, index) => (
-					<Planet key={index} {...planet} />
-				))}
-				<OrbitControls
-					enablePan={true}
-					enableZoom={false}
-					enableRotate={true}
-					minDistance={100}
-					maxDistance={1000}
-				/>
-			</Canvas>
-		</div>
+		<PlanetContext.Provider value={{ setHoveredPlanet }}>
+			<div className="w-full h-screen relative">
+				<Canvas
+					camera={{ position: [0, 200, 400], fov: 70 }}
+					gl={{
+						antialias: true,
+						toneMapping: THREE.ACESFilmicToneMapping,
+						outputEncoding: THREE.sRGBEncoding,
+						powerPreference: "high-performance",
+						alpha: false,
+						webgl2: true,
+					}}
+				>
+					<color attach="background" args={["#000010"]} />
+					<fog attach="fog" args={["#000010", 500, 1000]} />
+					<StarField />
+					<mesh>
+						<sphereGeometry args={[495, 32, 32]} />
+						<meshBasicMaterial
+							color="#000020"
+							side={BackSide}
+							transparent
+							opacity={0.5}
+						/>
+					</mesh>
+					<ambientLight intensity={1} />
+					<Sun />
+					{planets.map((planet, index) => (
+						<Planet key={index} {...planet} />
+					))}
+					<OrbitControls
+						enablePan={true}
+						enableZoom={false}
+						enableRotate={true}
+						minDistance={100}
+						maxDistance={1000}
+					/>
+				</Canvas>
+				<Tooltip hoveredPlanet={hoveredPlanet} />
+			</div>
+		</PlanetContext.Provider>
 	);
 };
 
