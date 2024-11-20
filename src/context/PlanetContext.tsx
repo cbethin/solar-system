@@ -1,8 +1,14 @@
-import React from 'react';
-import { PlanetContextType } from '../types/types';
+import React, { createContext } from 'react';
+import { PlanetData } from '../types/types';
+
+interface PlanetContextType {
+    hoveredPlanet: PlanetData | null;
+    setHoveredPlanet: (planet: PlanetData | null) => void;
+}
 
 const defaultContext: PlanetContextType = {
+    hoveredPlanet: null,
     setHoveredPlanet: () => undefined,
 };
 
-export const PlanetContext = React.createContext<PlanetContextType>(defaultContext);
+export const PlanetContext = createContext<PlanetContextType>(defaultContext);

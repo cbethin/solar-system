@@ -5,7 +5,7 @@ import { PlanetContext } from "../context/PlanetContext";
 import { Calc } from "../utils/planetCalculations";
 import { PlanetData } from "../types/types";
 
-export const Planet: React.FC<PlanetData> = ({
+export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void }> = ({
     orbitRadius,
     period,
     size,
@@ -13,6 +13,7 @@ export const Planet: React.FC<PlanetData> = ({
     name,
     eccentricity,
     distanceFromSun,
+    onClick,
 }) => {
     const [angle, setAngle] = useState(Math.random() * 360);
     const [isHovered, setIsHovered] = useState(false);
@@ -55,6 +56,7 @@ export const Planet: React.FC<PlanetData> = ({
                     setHoveredPlanet(null);
                     setIsHovered(false);
                 }}
+                onClick={() => onClick(meshRef.current!)}
             >
                 <primitive
                     object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 8)}
@@ -69,7 +71,7 @@ export const Planet: React.FC<PlanetData> = ({
             </mesh>
 
             {/* Visible orbit line */}
-            <mesh>
+            <mesh onClick={() => onClick(meshRef.current!)}>
                 <primitive
                     object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 1.5)}
                 />
@@ -83,7 +85,7 @@ export const Planet: React.FC<PlanetData> = ({
             </mesh>
 
             {/* Glow effect line (only visible on hover) */}
-            <mesh>
+            <mesh onClick={() => onClick(meshRef.current!)}>
                 <primitive
                     object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 4)}
                 />
@@ -97,7 +99,7 @@ export const Planet: React.FC<PlanetData> = ({
             </mesh>
 
             {/* Planet Sphere */}
-            <mesh ref={meshRef}>
+            <mesh ref={meshRef} onClick={() => onClick(meshRef.current!)}>
                 <sphereGeometry args={[size, 32, 32]} />
                 <meshBasicMaterial color={color} />
             </mesh>
