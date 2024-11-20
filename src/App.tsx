@@ -6,6 +6,7 @@ import { PlanetData } from "./types/types";
 
 const SolarSystem = () => {
     const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
+    const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
 
     useEffect(() => {
         const handleMouseWheel = (event: WheelEvent) => {
@@ -21,10 +22,21 @@ const SolarSystem = () => {
     }, []);
 
     return (
-        <PlanetContext.Provider value={{ hoveredPlanet, setHoveredPlanet }}>
+        <PlanetContext.Provider value={{ 
+            hoveredPlanet, 
+            selectedPlanet,
+            setHoveredPlanet,
+            setSelectedPlanet 
+        }}>
             <div className="w-full h-screen relative">
-                <Scene hoveredPlanet={hoveredPlanet} />
-                <Tooltip hoveredPlanet={hoveredPlanet} />
+                <Scene 
+                    hoveredPlanet={hoveredPlanet}
+                    setSelectedPlanet={setSelectedPlanet}
+                />
+                <Tooltip 
+                    hoveredPlanet={hoveredPlanet}
+                    selectedPlanet={selectedPlanet}
+                />
             </div>
         </PlanetContext.Provider>
     );

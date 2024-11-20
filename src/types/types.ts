@@ -1,4 +1,3 @@
-
 export interface PlanetData {
     orbitRadius: number;
     period: number;
@@ -10,5 +9,8 @@ export interface PlanetData {
 }
 
 export interface PlanetContextType {
+    hoveredPlanet: PlanetData | null;
+    selectedPlanet: PlanetData | null;
     setHoveredPlanet: (planet: PlanetData | null) => void;
+    setSelectedPlanet: (planet: PlanetData | null) => void;
 }

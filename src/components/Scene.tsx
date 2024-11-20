@@ -12,9 +12,10 @@ import { PlanetData } from "@/types/types";
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
+    setSelectedPlanet: (planet: PlanetData | null) => void;
 }
 
-export const Scene: React.FC<SceneProps> = ({ hoveredPlanet }) => {
+export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
     return (
         <Canvas
             camera={{ position: [0, 200, 300], fov: 70 }}
@@ -27,25 +28,26 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet }) => {
                 webgl2: true,
             }}
         >
-            <SceneContent hoveredPlanet={hoveredPlanet} />
+            <SceneContent hoveredPlanet={hoveredPlanet} setSelectedPlanet={setSelectedPlanet} />
         </Canvas>
     );
 };
 
-const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet }) => {
+const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
     const { camera } = useThree();
-    const { cameraRef, jumpToPlanet, resetCamera, targetPlanet } = useCameraControls();
+    const { cameraRef, jumpToPlanet, resetCamera, targetPlanet, isFollowing } = useCameraControls();
 
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
             if (event.key.toLowerCase() === 'x' && targetPlanet) {
                 resetCamera();
+                setSelectedPlanet(null);
             }
         };
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [targetPlanet, resetCamera]);
+    }, [targetPlanet, resetCamera, setSelectedPlanet]);
 
     return (
         <>
@@ -67,11 +69,14 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet }) => {
                 <Planet
                     key={index}
                     {...planet}
-                    onClick={(mesh) => jumpToPlanet(planet, mesh)}
+                    onClick={(mesh) => {
+                        jumpToPlanet(planet, mesh);
+                        setSelectedPlanet(planet);
+                    }}
                 />
             ))}
             <OrbitControls
-                enabled={!targetPlanet} // Disable controls when following a planet
+                enabled={!targetPlanet && !isFollowing}
                 enablePan={true}
                 enableZoom={false}
                 enableRotate={true}
