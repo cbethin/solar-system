@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext } from "react";
+import React, { useRef, useState, useContext, useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { PlanetContext } from "../context/PlanetContext";
@@ -18,12 +18,33 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
     const [angle, setAngle] = useState(Math.random() * 360);
     const [isHovered, setIsHovered] = useState(false);
     const meshRef = useRef<THREE.Mesh>(null);
+    const geometryRef = useRef<THREE.BufferGeometry | null>(null);
+    const materialRef = useRef<THREE.Material | null>(null);
     const scaledPeriod = period * 8;
     const speedMultiplier = 3;
 
     const context = useContext(PlanetContext);
     if (!context) throw new Error("Planet must be used within PlanetContext");
     const { setHoveredPlanet } = context;
+
+    useEffect(() => {
+        return () => {
+            // Cleanup geometries and materials on unmount
+            if (geometryRef.current) {
+                geometryRef.current.dispose();
+            }
+            if (materialRef.current) {
+                materialRef.current.dispose();
+            }
+        };
+    }, []);
+
+    // Store refs to geometries and materials
+    const orbitGeometry = useMemo(() => {
+        const geometry = Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 8);
+        geometryRef.current = geometry;
+        return geometry;
+    }, [orbitRadius, eccentricity]);
 
     useFrame((state, delta) => {
         setAngle(
@@ -101,7 +122,19 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
             {/* Planet Sphere */}
             <mesh ref={meshRef} onClick={() => onClick(meshRef.current!)}>
                 <sphereGeometry args={[size, 32, 32]} />
-                <meshBasicMaterial color={color} />
+                <meshStandardMaterial color={color} />
+            </mesh>
+
+            {/* Planet Glow */}
+            <mesh>
+                <sphereGeometry args={[size * 1.2, 32, 32]} />
+                <meshBasicMaterial
+                    color={color}
+                    transparent={true}
+                    opacity={0.15}
+                    side={THREE.BackSide}
+                    blending={THREE.AdditiveBlending}
+                />
             </mesh>
         </group>
     );

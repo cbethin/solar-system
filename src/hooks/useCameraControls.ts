@@ -17,38 +17,36 @@ export const useCameraControls = () => {
     const ROTATION_SPEED = 0.2;
     const TRAVEL_DURATION = 4.5; // Increased from 2.5 to 4.5
 
+    // Add single reusable vector
+    const tempVector = useRef(new THREE.Vector3());
+
     useFrame((state, delta) => {
         if (isFollowing && targetPlanet.current && meshRef.current) {
             meshRef.current.getWorldPosition(targetPosition.current);
             
             if (travelProgress.current < 1) {
                 travelProgress.current = Math.min(travelProgress.current + delta / TRAVEL_DURATION, 1);
-                
-                // Calculate destination point to the side of the planet
                 const radius = targetPlanet.current.size * 4;
-                const destPosition = new THREE.Vector3(
+                const easing = 1 - Math.pow(1 - travelProgress.current, 4);
+                
+                tempVector.current.set(
                     targetPosition.current.x + radius,
-                    targetPosition.current.y + (radius * 0.3), // Slight upward offset
+                    targetPosition.current.y + (radius * 0.3),
                     targetPosition.current.z
                 );
 
-                // Added smoother easing function
-                const easing = 1 - Math.pow(1 - travelProgress.current, 4); // Changed from cubic to quartic easing
-                camera.position.lerp(destPosition, easing);
-                camera.lookAt(targetPosition.current);
+                camera.position.lerp(tempVector.current, easing);
             } else {
-                // Rotate camera position around the planet horizontally
-                rotationAngle.current += delta * ROTATION_SPEED;
                 const radius = targetPlanet.current.size * 4;
+                rotationAngle.current += delta * ROTATION_SPEED;
                 
                 camera.position.set(
                     targetPosition.current.x + Math.cos(rotationAngle.current) * radius,
-                    targetPosition.current.y + (radius * 0.3), // Maintain slight upward offset
+                    targetPosition.current.y + (radius * 0.3),
                     targetPosition.current.z + Math.sin(rotationAngle.current) * radius
                 );
             }
             
-            // Always look at the planet
             camera.lookAt(targetPosition.current);
         }
     });

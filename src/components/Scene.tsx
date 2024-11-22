@@ -46,7 +46,15 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
         };
 
         window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
+        
+        return () => {
+            window.removeEventListener('keydown', handleKeyPress);
+            // Cleanup camera state when component unmounts
+            if (targetPlanet) {
+                resetCamera();
+                setSelectedPlanet(null);
+            }
+        };
     }, [targetPlanet, resetCamera, setSelectedPlanet]);
 
     return (
