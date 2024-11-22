@@ -22,9 +22,11 @@ export const useCameraControls = () => {
 
     useFrame((state, delta) => {
         if (isFollowing && targetPlanet.current && meshRef.current) {
+            // Get the current world position of the planet
             meshRef.current.getWorldPosition(targetPosition.current);
             
             if (travelProgress.current < 1) {
+                // Keep the smooth transition to the planet
                 travelProgress.current = Math.min(travelProgress.current + delta / TRAVEL_DURATION, 1);
                 const radius = targetPlanet.current.size * 4;
                 const easing = 1 - Math.pow(1 - travelProgress.current, 4);
@@ -37,9 +39,11 @@ export const useCameraControls = () => {
 
                 camera.position.lerp(tempVector.current, easing);
             } else {
+                // Follow the planet's orbit without interfering with its movement
                 const radius = targetPlanet.current.size * 4;
                 rotationAngle.current += delta * ROTATION_SPEED;
                 
+                // Calculate camera position relative to the planet's current position
                 camera.position.set(
                     targetPosition.current.x + Math.cos(rotationAngle.current) * radius,
                     targetPosition.current.y + (radius * 0.3),

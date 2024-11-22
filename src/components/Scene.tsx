@@ -84,12 +84,13 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 />
             ))}
             <OrbitControls
-                enabled={!targetPlanet && !isFollowing}
+                enabled={!isFollowing}  // Only disable controls when following a planet
                 enablePan={true}
-                enableZoom={false}
+                enableZoom={true}       // Changed to true to allow zooming
                 enableRotate={true}
                 minDistance={100}
                 maxDistance={1000}
+                makeDefault            // Add this to make it the default controls
             />
         </>
     );
