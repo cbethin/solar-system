@@ -10,118 +10,46 @@ export const useCameraControls = () => {
     const previousPosition = useRef<THREE.Vector3 | null>(null);
     const previousRotation = useRef<THREE.Euler | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
-    const orbitAngle = useRef(0);
+    const rotationAngle = useRef(0);
     const targetPosition = useRef(new THREE.Vector3());
     const meshRef = useRef<THREE.Mesh | null>(null);
-    const curve = useRef<THREE.CubicBezierCurve3 | null>(null);
     const travelProgress = useRef(0);
-    const ORBIT_SPEED = 0.25;
-    const TRAVEL_DURATION = 2.5;
-
-    const createOrbitEntryPath = (
-        startPos: THREE.Vector3,
-        planetPos: THREE.Vector3,
-        radius: number,
-        entryAngle: number
-    ) => {
-        const endPos = new THREE.Vector3(
-            planetPos.x + Math.cos(entryAngle) * radius,
-            planetPos.y + radius * 0.5,
-            planetPos.z + Math.sin(entryAngle) * radius
-        );
-
-        // Calculate control points for smooth entry into orbit
-        const midPoint = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
-        const distance = startPos.distanceTo(endPos);
-        
-        // Lift the curve up for a more dramatic approach
-        midPoint.y += distance * 0.3;
-        
-        // Pull control point towards planet for smoother entry
-        const control2 = new THREE.Vector3().addVectors(endPos, planetPos)
-            .multiplyScalar(0.5)
-            .add(new THREE.Vector3(0, radius * 0.5, 0));
-
-        return new THREE.CubicBezierCurve3(
-            startPos,
-            midPoint,
-            control2,
-            endPos
-        );
-    };
-
-    const calculateOrbitPosition = (
-        targetPos: THREE.Vector3,
-        angle: number,
-        radius: number
-    ): THREE.Vector3 => {
-        return new THREE.Vector3(
-            targetPos.x + Math.cos(angle) * radius,
-            targetPos.y + radius * 0.5,
-            targetPos.z + Math.sin(angle) * radius
-        );
-    };
-
-    const updateCameraRotation = (
-        camera: THREE.Camera,
-        currentPos: THREE.Vector3,
-        targetPos: THREE.Vector3,
-        lerpFactor: number = 0.1
-    ) => {
-        const lookAtMatrix = new THREE.Matrix4();
-        lookAtMatrix.lookAt(currentPos, targetPos, camera.up);
-        const targetQuaternion = new THREE.Quaternion().setFromRotationMatrix(lookAtMatrix);
-        camera.quaternion.slerp(targetQuaternion, lerpFactor);
-    };
-
-    const moveCameraAlongCurve = (
-        camera: THREE.Camera,
-        curve: THREE.CubicBezierCurve3,
-        progress: number,
-        targetPos: THREE.Vector3
-    ) => {
-        const easedProgress = 1 - Math.pow(1 - progress, 3);
-        const pos = curve.getPoint(easedProgress);
-        camera.position.copy(pos);
-        updateCameraRotation(camera, pos, targetPos);
-    };
-
-    const updateOrbitPosition = (
-        camera: THREE.Camera,
-        targetPos: THREE.Vector3,
-        angle: number,
-        radius: number
-    ) => {
-        const newPosition = calculateOrbitPosition(targetPos, angle, radius);
-        camera.position.lerp(newPosition, 0.1);
-        updateCameraRotation(camera, camera.position, targetPos);
-    };
+    const ROTATION_SPEED = 0.2;
+    const TRAVEL_DURATION = 4.5; // Increased from 2.5 to 4.5
 
     useFrame((state, delta) => {
         if (isFollowing && targetPlanet.current && meshRef.current) {
             meshRef.current.getWorldPosition(targetPosition.current);
             
             if (travelProgress.current < 1) {
-                if (curve.current) {
-                    travelProgress.current = Math.min(travelProgress.current + delta / TRAVEL_DURATION, 1);
-                    moveCameraAlongCurve(camera, curve.current, travelProgress.current, targetPosition.current);
+                travelProgress.current = Math.min(travelProgress.current + delta / TRAVEL_DURATION, 1);
+                
+                // Calculate destination point to the side of the planet
+                const radius = targetPlanet.current.size * 4;
+                const destPosition = new THREE.Vector3(
+                    targetPosition.current.x + radius,
+                    targetPosition.current.y + (radius * 0.3), // Slight upward offset
+                    targetPosition.current.z
+                );
 
-                    if (travelProgress.current === 1) {
-                        orbitAngle.current = Math.atan2(
-                            camera.position.z - targetPosition.current.z,
-                            camera.position.x - targetPosition.current.x
-                        );
-                    }
-                }
+                // Added smoother easing function
+                const easing = 1 - Math.pow(1 - travelProgress.current, 4); // Changed from cubic to quartic easing
+                camera.position.lerp(destPosition, easing);
+                camera.lookAt(targetPosition.current);
             } else {
-                orbitAngle.current += delta * ORBIT_SPEED;
-                updateOrbitPosition(
-                    camera,
-                    targetPosition.current,
-                    orbitAngle.current,
-                    targetPlanet.current.size * 4
+                // Rotate camera position around the planet horizontally
+                rotationAngle.current += delta * ROTATION_SPEED;
+                const radius = targetPlanet.current.size * 4;
+                
+                camera.position.set(
+                    targetPosition.current.x + Math.cos(rotationAngle.current) * radius,
+                    targetPosition.current.y + (radius * 0.3), // Maintain slight upward offset
+                    targetPosition.current.z + Math.sin(rotationAngle.current) * radius
                 );
             }
+            
+            // Always look at the planet
+            camera.lookAt(targetPosition.current);
         }
     });
 
@@ -131,21 +59,7 @@ export const useCameraControls = () => {
         targetPlanet.current = planet;
         meshRef.current = mesh;
         
-        mesh.getWorldPosition(targetPosition.current);
-        const radius = planet.size * 4;
-        
-        const entryAngle = Math.atan2(
-            camera.position.z - targetPosition.current.z,
-            camera.position.x - targetPosition.current.x
-        );
-
-        curve.current = createOrbitEntryPath(
-            camera.position.clone(),
-            targetPosition.current.clone(),
-            radius,
-            entryAngle
-        );
-
+        rotationAngle.current = 0;
         travelProgress.current = 0;
         setIsFollowing(true);
     };
