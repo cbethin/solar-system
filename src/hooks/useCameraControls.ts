@@ -2,100 +2,42 @@ import { useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PlanetData } from "../types/types";
 import * as THREE from "three";
-import gsap from "gsap";
 
 export const useCameraControls = () => {
     const { camera } = useThree();
     const targetPlanet = useRef<PlanetData | null>(null);
-    const previousPosition = useRef<THREE.Vector3 | null>(null);
-    const previousRotation = useRef<THREE.Euler | null>(null);
     const [isFollowing, setIsFollowing] = useState(false);
     const rotationAngle = useRef(0);
-    const targetPosition = useRef(new THREE.Vector3());
     const meshRef = useRef<THREE.Mesh | null>(null);
-    const travelProgress = useRef(0);
-    const ROTATION_SPEED = 0.2;
-    const TRAVEL_DURATION = 4.5; // Increased from 2.5 to 4.5
-
-    // Add single reusable vector
-    const tempVector = useRef(new THREE.Vector3());
-
+    
     useFrame((state, delta) => {
         if (isFollowing && targetPlanet.current && meshRef.current) {
-            // Get the current world position of the planet
-            meshRef.current.getWorldPosition(targetPosition.current);
+            const radius = targetPlanet.current.size * 4;
+            rotationAngle.current += delta * 0.2;
             
-            if (travelProgress.current < 1) {
-                // Keep the smooth transition to the planet
-                travelProgress.current = Math.min(travelProgress.current + delta / TRAVEL_DURATION, 1);
-                const radius = targetPlanet.current.size * 4;
-                const easing = 1 - Math.pow(1 - travelProgress.current, 4);
-                
-                tempVector.current.set(
-                    targetPosition.current.x + radius,
-                    targetPosition.current.y + (radius * 0.3),
-                    targetPosition.current.z
-                );
-
-                camera.position.lerp(tempVector.current, easing);
-            } else {
-                // Follow the planet's orbit without interfering with its movement
-                const radius = targetPlanet.current.size * 4;
-                rotationAngle.current += delta * ROTATION_SPEED;
-                
-                // Calculate camera position relative to the planet's current position
-                camera.position.set(
-                    targetPosition.current.x + Math.cos(rotationAngle.current) * radius,
-                    targetPosition.current.y + (radius * 0.3),
-                    targetPosition.current.z + Math.sin(rotationAngle.current) * radius
-                );
-            }
+            // Update camera position to orbit the planet
+            camera.position.set(
+                meshRef.current.position.x + Math.cos(rotationAngle.current) * radius,
+                meshRef.current.position.y + radius * 0.3,
+                meshRef.current.position.z + Math.sin(rotationAngle.current) * radius
+            );
             
-            camera.lookAt(targetPosition.current);
+            camera.lookAt(meshRef.current.position);
         }
     });
 
     const jumpToPlanet = (planet: PlanetData, mesh: THREE.Mesh) => {
-        previousPosition.current = camera.position.clone();
-        previousRotation.current = camera.rotation.clone();
         targetPlanet.current = planet;
         meshRef.current = mesh;
-        
-        rotationAngle.current = 0;
-        travelProgress.current = 0;
         setIsFollowing(true);
     };
 
     const resetCamera = () => {
-        if (!previousPosition.current || !previousRotation.current) return;
         setIsFollowing(false);
-        
-        gsap.to(camera.position, {
-            x: previousPosition.current.x,
-            y: previousPosition.current.y,
-            z: previousPosition.current.z,
-            duration: 2,
-            ease: "power2.inOut"
-        });
-
-        gsap.to(camera.rotation, {
-            x: previousRotation.current.x,
-            y: previousRotation.current.y,
-            z: previousRotation.current.z,
-            duration: 2,
-            ease: "power2.inOut",
-            onComplete: () => {
-                targetPlanet.current = null;
-                previousPosition.current = null;
-                previousRotation.current = null;
-            }
-        });
+        camera.position.set(0, 100, 200); // Higher and further back for better overview
+        camera.lookAt(0, 0, 0);
+        targetPlanet.current = null;
     };
 
-    return { 
-        jumpToPlanet, 
-        resetCamera, 
-        targetPlanet: targetPlanet.current,
-        isFollowing 
-    };
+    return { jumpToPlanet, resetCamera, targetPlanet: targetPlanet.current, isFollowing };
 };

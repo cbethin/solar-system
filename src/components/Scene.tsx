@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -26,16 +26,33 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 powerPreference: "high-performance",
                 alpha: false,
                 webgl2: true,
+                logarithmicDepthBuffer: false, // Disable unless needed
             }}
+            performance={{ min: 0.5 }} // Allow frame rate to drop to maintain smoothness
         >
-            <SceneContent hoveredPlanet={hoveredPlanet} setSelectedPlanet={setSelectedPlanet} />
+            <React.Suspense fallback={null}>
+                <SceneContent hoveredPlanet={hoveredPlanet} setSelectedPlanet={setSelectedPlanet} />
+            </React.Suspense>
         </Canvas>
     );
 };
 
 const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
     const { camera } = useThree();
-    const { cameraRef, jumpToPlanet, resetCamera, targetPlanet, isFollowing } = useCameraControls();
+    const { jumpToPlanet, resetCamera, targetPlanet, isFollowing } = useCameraControls();
+    const orbitControlsRef = useRef<any>(null);
+
+    // Simplify camera layer setup
+    useEffect(() => {
+        camera.layers.enable(0);  // Default layer only
+    }, [camera]);
+
+    // Disable orbit controls when following a planet
+    useEffect(() => {
+        if (orbitControlsRef.current) {
+            orbitControlsRef.current.enabled = !isFollowing;
+        }
+    }, [isFollowing]);
 
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
@@ -84,6 +101,7 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 />
             ))}
             <OrbitControls
+                ref={orbitControlsRef}
                 enabled={!isFollowing}  // Only disable controls when following a planet
                 enablePan={true}
                 enableZoom={true}       // Changed to true to allow zooming
@@ -91,6 +109,17 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 minDistance={100}
                 maxDistance={1000}
                 makeDefault            // Add this to make it the default controls
+                target={[0, 0, 0]}
+                // Add these to prevent automatic camera movements
+                enableDamping={false}
+                autoRotate={false}
+                // Remove layers prop to allow interaction with all visible objects
+                screenSpacePanning={true}
+                mouseButtons={{
+                    LEFT: THREE.MOUSE.ROTATE,
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.PAN
+                }}
             />
         </>
     );

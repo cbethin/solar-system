@@ -1,11 +1,10 @@
-
 import { PlanetData } from "../types/types";
 
 export const planets: PlanetData[] = [
     {
         orbitRadius: 40,
         period: 0.24,
-        size: 3,
+        size: 2.5,
         color: "#A0522D",
         name: "Mercury",
         distanceFromSun: 0.39,
@@ -14,7 +13,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 60,
         period: 0.62,
-        size: 6,
+        size: 4,
         color: "#DEB887",
         name: "Venus",
         distanceFromSun: 0.72,
@@ -23,7 +22,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 80,
         period: 1,
-        size: 6.4,
+        size: 4.2,
         color: "#4169E1",
         name: "Earth",
         distanceFromSun: 1,
@@ -32,7 +31,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 100,
         period: 1.88,
-        size: 4,
+        size: 3,
         color: "#CD853F",
         name: "Mars",
         distanceFromSun: 1.52,
@@ -41,7 +40,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 140,
         period: 11.86,
-        size: 12,
+        size: 8,
         color: "#DAA520",
         name: "Jupiter",
         distanceFromSun: 5.2,
@@ -50,7 +49,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 180,
         period: 29.46,
-        size: 10,
+        size: 7,
         color: "#F4C430",
         name: "Saturn",
         distanceFromSun: 9.54,
@@ -59,7 +58,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 220,
         period: 84.01,
-        size: 8,
+        size: 5.5,
         color: "#87CEEB",
         name: "Uranus",
         distanceFromSun: 19.18,
@@ -68,7 +67,7 @@ export const planets: PlanetData[] = [
     {
         orbitRadius: 260,
         period: 164.79,
-        size: 7.8,
+        size: 5.2,
         color: "#1E90FF",
         name: "Neptune",
         distanceFromSun: 30.06,

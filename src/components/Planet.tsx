@@ -15,6 +15,7 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
     distanceFromSun,
     onClick,
 }) => {
+    const SIZE_MULTIPLIER = 1.2; // Add this constant
     const [angle, setAngle] = useState(Math.random() * 360);
     const [isHovered, setIsHovered] = useState(false);
     const meshRef = useRef<THREE.Mesh>(null);
@@ -46,14 +47,26 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
         return geometry;
     }, [orbitRadius, eccentricity]);
 
+    // Cache geometries and materials at module level
+    const sphereGeometry = useMemo(() => new THREE.SphereGeometry(size, 32, 32), [size]);
+    const glowGeometry = useMemo(() => new THREE.SphereGeometry(size * SIZE_MULTIPLIER, 32, 32), [size]);
+    
+    // Use instances for better performance
+    const planetMaterial = useMemo(() => new THREE.MeshStandardMaterial(), []);
+    const glowMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0.15,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending
+    }), []);
+
     useFrame((state, delta) => {
-        setAngle(
-            (prev) => (prev + (360 / scaledPeriod / 60) * speedMultiplier) % 360,
-        );
-        if (meshRef.current) {
-            const position = Calc.getOrbitPosition(angle, orbitRadius, eccentricity);
-            meshRef.current.position.copy(position);
-        }
+        if (!meshRef.current) return;
+        
+        // Optimize angle calculation
+        setAngle(angle => (angle + (6 / scaledPeriod) * speedMultiplier) % 360);
+        const position = Calc.getOrbitPosition(angle, orbitRadius, eccentricity);
+        meshRef.current.position.copy(position);
     });
 
     const planetData = {
@@ -78,6 +91,7 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
                     setIsHovered(false);
                 }}
                 onClick={() => onClick(meshRef.current!)}
+                layers={0}  // Changed to default layer for interaction
             >
                 <primitive
                     object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 8)}
@@ -92,7 +106,7 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
             </mesh>
 
             {/* Visible orbit line */}
-            <mesh onClick={() => onClick(meshRef.current!)}>
+            <mesh onClick={() => onClick(meshRef.current!)} layers={0}>  // Changed to default layer for interaction
                 <primitive
                     object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 1.5)}
                 />
@@ -106,7 +120,7 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
             </mesh>
 
             {/* Glow effect line (only visible on hover) */}
-            <mesh onClick={() => onClick(meshRef.current!)}>
+            <mesh onClick={() => onClick(meshRef.current!)} layers={1}>
                 <primitive
                     object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, 4)}
                 />
@@ -120,21 +134,15 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
             </mesh>
 
             {/* Planet Sphere */}
-            <mesh ref={meshRef} onClick={() => onClick(meshRef.current!)}>
-                <sphereGeometry args={[size, 32, 32]} />
-                <meshStandardMaterial color={color} />
+            <mesh ref={meshRef} onClick={() => onClick(meshRef.current!)} layers={0}>  // Changed to default layer for interaction
+                <primitive object={sphereGeometry} />
+                <primitive object={planetMaterial} color={color} />
             </mesh>
 
             {/* Planet Glow */}
-            <mesh>
-                <sphereGeometry args={[size * 1.2, 32, 32]} />
-                <meshBasicMaterial
-                    color={color}
-                    transparent={true}
-                    opacity={0.15}
-                    side={THREE.BackSide}
-                    blending={THREE.AdditiveBlending}
-                />
+            <mesh layers={0}>  // Keep glow effect in default layer
+                <primitive object={glowGeometry} />
+                <primitive object={glowMaterial} color={color} />
             </mesh>
         </group>
     );

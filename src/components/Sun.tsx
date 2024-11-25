@@ -23,16 +23,19 @@ const SunShader = {
         varying vec3 vWorldPosition;
         uniform float time;
         
+        // More efficient noise calculation
+        float noise(vec3 p) {
+            return fract(sin(dot(p, vec3(12.9898, 78.233, 45.543))) * 43758.5453);
+        }
+        
         void main() {
-            float noise = sin(vWorldPosition.x * 2.0 + time) * 
-                         cos(vWorldPosition.y * 2.0 + time) * 
-                         sin(vWorldPosition.z * 2.0 + time);
+            float n = noise(vWorldPosition * 2.0 + time);
             
-            vec3 baseColor = vec3(1.0, 0.95, 0.8);    // Changed to more white
-            vec3 highlight = vec3(1.0, 1.0, 0.9);      // Changed to more yellow-white
+            vec3 baseColor = vec3(1.0, 0.95, 0.8);
+            vec3 highlight = vec3(1.0, 1.0, 0.9);
             
             float fresnel = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-            vec3 finalColor = mix(baseColor, highlight, fresnel + noise * 0.15);
+            vec3 finalColor = mix(baseColor, highlight, fresnel + n * 0.15);
             
             gl_FragColor = vec4(finalColor, 1.0);
         }
@@ -68,12 +71,12 @@ export const Sun: React.FC = () => {
             </mesh>
 
             {/* Enhanced volumetric corona layers */}
-            {Array.from({ length: 25 }).map((_, index) => {
-                const size = Math.pow(1.3, index + 1) * 2;
-                const opacity = 0.12 / Math.pow(index + 1, 0.8);
+            {Array.from({ length: 15 }).map((_, index) => {
+                const size = Math.pow(1.4, index + 1) * 2;
+                const opacity = 0.15 / Math.pow(index + 1, 0.7);
                 return (
                     <mesh key={index}>
-                        <sphereGeometry args={[20 + size, 64, 64]} />
+                        <sphereGeometry args={[20 + size, 32, 32]} /> {/* Reduced segments */}
                         <meshBasicMaterial
                             color={new THREE.Color().setHSL(0.12, 0.8, Math.max(0.9 - index * 0.02, 0))}
                             transparent
