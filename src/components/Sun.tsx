@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
+import { SUN_SIZE } from "../utils/constants";
 
 const SunShader = {
     uniforms: {
@@ -65,18 +66,18 @@ export const Sun: React.FC = () => {
         <group>
             {/* Core sun sphere with custom shader */}
             <mesh>
-                <sphereGeometry args={[20, 128, 128]} />
+                <sphereGeometry args={[SUN_SIZE, 128, 128]} />
                 <primitive object={sunMaterial} attach="material" />
-                <pointLight intensity={12} distance={4000} decay={0.5} />
+                <pointLight intensity={12} distance={5000} decay={0.5} />
             </mesh>
 
             {/* Enhanced volumetric corona layers */}
-            {Array.from({ length: 15 }).map((_, index) => {
-                const size = Math.pow(1.4, index + 1) * 2;
-                const opacity = 0.15 / Math.pow(index + 1, 0.7);
+            {Array.from({ length: 18 }).map((_, index) => { // More corona layers
+                const size = Math.pow(1.48, index + 1) * 2;
+                const opacity = 0.15 / Math.pow(index + 1, 0.5); // Stronger corona glow
                 return (
                     <mesh key={index}>
-                        <sphereGeometry args={[20 + size, 32, 32]} /> {/* Reduced segments */}
+                        <sphereGeometry args={[SUN_SIZE - 5 + size, 32, 32]} /> {/* Reduced segments */}
                         <meshBasicMaterial
                             color={new THREE.Color().setHSL(0.12, 0.8, Math.max(0.9 - index * 0.02, 0))}
                             transparent
@@ -89,19 +90,20 @@ export const Sun: React.FC = () => {
                 )
             })}
 
-            {/* Atmospheric light sources */}
-            <pointLight position={[0, 0, 0]} color="#FFFBF0" intensity={20} distance={2000} decay={1.5} />
-            <pointLight position={[0, 0, 0]} color="#FFF5E0" intensity={15} distance={3000} decay={1.2} />
-            <pointLight position={[0, 0, 0]} color="#FFE0A3" intensity={10} distance={4000} decay={1.0} />
-            <pointLight position={[0, 0, 0]} color="#FFFAF0" intensity={8} distance={5000} decay={0.8} />
+            {/* Enhanced atmospheric lights */}
+            <pointLight position={[0, 0, 0]} color="#FFFBF0" intensity={30} distance={4000} decay={1.0} />
+            <pointLight position={[0, 0, 0]} color="#FFF5E0" intensity={25} distance={4500} decay={0.8} />
+            <pointLight position={[0, 0, 0]} color="#FFE0A3" intensity={15} distance={4500} decay={0.6} />
+            <pointLight position={[0, 0, 0]} color="#FFFAF0" intensity={10} distance={5000} decay={0.4} />
+            <pointLight position={[0, 0, 0]} color="#FFFFFF" intensity={5} distance={6000} decay={0.3} />
 
-            {/* Global volumetric light */}
+            {/* Scaled back global volumetric light */}
             <mesh>
-                <sphereGeometry args={[200, 32, 32]} />
+                <sphereGeometry args={[450, 32, 32]} /> {/* Reduced from 600 */}
                 <meshBasicMaterial
                     color={new THREE.Color(1, 0.98, 0.9)}
                     transparent
-                    opacity={0.03}
+                    opacity={0.02}
                     blending={THREE.AdditiveBlending}
                     side={THREE.BackSide}
                     depthWrite={false}

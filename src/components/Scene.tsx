@@ -9,6 +9,8 @@ import { Sun } from "./Sun";
 import { planets } from "../data/planetData";
 import { useCameraControls } from "../hooks/useCameraControls";
 import { PlanetData } from "@/types/types";
+import { AsteroidBelt } from "./AsteroidBelt";
+import { solarSystemLayout } from "../data/solarSystemLayout";
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
@@ -18,7 +20,12 @@ interface SceneProps {
 export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
     return (
         <Canvas
-            camera={{ position: [0, 200, 300], fov: 70 }}
+            camera={{ 
+                position: [0, 500, 800], // More dramatic starting angle
+                fov: 60, // Narrower FOV for more cinematic look
+                near: 10,
+                far: 20000
+            }}
             gl={{
                 antialias: true,
                 toneMapping: THREE.ACESFilmicToneMapping,
@@ -76,29 +83,39 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
 
     return (
         <>
-            <color attach="background" args={["#000010"]} />
-            <fog attach="fog" args={["#000010", 500, 1000]} />
+            <color attach="background" args={["#000005"]} /> {/* Deeper space black */}
+            <fog attach="fog" args={["#000010", 3500, 12000]} /> {/* More atmospheric fog */}
             <StarField />
             <mesh>
-                <sphereGeometry args={[495, 32, 32]} />
+                <sphereGeometry args={[995, 32, 32]} /> {/* Increased boundary sphere */}
                 <meshBasicMaterial
                     color="#000020"
                     side={BackSide}
                     transparent
-                    opacity={0.5}
+                    opacity={0.3} /* Reduced opacity */
                 />
             </mesh>
-            <ambientLight intensity={1} />
+            <ambientLight intensity={1.5} /> {/* Increased base ambient light */}
             <Sun />
-            {planets.map((planet, index) => (
-                <Planet
-                    key={index}
-                    {...planet}
-                    onClick={(mesh) => {
-                        jumpToPlanet(planet, mesh);
-                        setSelectedPlanet(planet);
-                    }}
-                />
+            {solarSystemLayout.objects.map((object, index) => (
+                object.type === 'planet' ? (
+                    <Planet
+                        key={index}
+                        {...object}
+                        onClick={(mesh) => {
+                            jumpToPlanet(object, mesh);
+                            setSelectedPlanet(object);
+                        }}
+                    />
+                ) : (
+                    <AsteroidBelt
+                        key={index}
+                        radius={object.orbitRadius}
+                        width={object.width}
+                        count={object.asteroidCount}
+                        color={object.color}
+                    />
+                )
             ))}
             <OrbitControls
                 ref={orbitControlsRef}
@@ -107,7 +124,7 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 enableZoom={true}       // Changed to true to allow zooming
                 enableRotate={true}
                 minDistance={100}
-                maxDistance={1000}
+                maxDistance={8000} // Increased from 5000
                 makeDefault            // Add this to make it the default controls
                 target={[0, 0, 0]}
                 // Add these to prevent automatic camera movements
