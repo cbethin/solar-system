@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Scene } from "./components/Scene";
 import { Tooltip } from "./components/Tooltip";
+import { SizeToggle } from "./components/SizeToggle";
 import { PlanetContext } from "./context/PlanetContext";
 import { PlanetData } from "./types/types";
 
@@ -37,6 +38,7 @@ const SolarSystem = () => {
                     hoveredPlanet={hoveredPlanet}
                     selectedPlanet={selectedPlanet}
                 />
+                <SizeToggle />
             </div>
         </PlanetContext.Provider>
     );

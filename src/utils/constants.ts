@@ -1,4 +1,4 @@
-export const BASE_SCALE = 0.5; // Base scale factor for planet sizes
+export const BASE_SCALE = 3; // Increased from 2 for better visibility
 export const SUN_SIZE = 50 * BASE_SCALE; // Proportional sun size
 export const OORT_CLOUD_RADIUS = 4500; // Extended reach
 export const OORT_CLOUD_PARTICLES = 12000; // More particles

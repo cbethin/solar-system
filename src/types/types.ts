@@ -1,3 +1,11 @@
+export interface MoonData {
+    name: string;    // Add name property
+    size: number;
+    color: string;
+    orbitRadius: number;
+    period: number;
+}
+
 export interface PlanetData {
     orbitRadius: number;
     period: number;
@@ -6,6 +14,7 @@ export interface PlanetData {
     name: string;
     eccentricity: number;
     distanceFromSun: number;
+    moons?: MoonData[];
 }
 
 export interface PlanetContextType {
@@ -33,6 +42,7 @@ export interface SolarSystemObject {
     name: string;
     eccentricity: number;
     distanceFromSun: number;
+    moons?: MoonData[];  // Add moons property to match PlanetData
 }
 
 export interface OortCloud {
@@ -80,4 +90,11 @@ export interface SolarSystemLayout {
     starField: StarFieldConfiguration;
     camera: CameraConfiguration;
     fog: FogConfiguration;
+}
+
+export interface ScaledSolarSystemLayout extends SolarSystemLayout {
+    scalingFactors?: {
+        size: number;
+        distance: number;
+    };
 }

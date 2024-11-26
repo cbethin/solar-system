@@ -24,16 +24,23 @@ export const AsteroidBelt: React.FC<AsteroidBeltProps> = ({
     // Generate random but stable positions for asteroids
     const positions = useMemo(() => {
         const beltRadius = radius; // Create local reference to avoid scope issues
-        return Array.from({ length: count }, () => {
+        return Array.from({ length: count }, (_, i) => {
             const angle = Math.random() * Math.PI * 2;
             const orbitRadius = beltRadius + (Math.random() - 0.5) * width;
             const y = (Math.random() - 0.5) * width * 0.5;
+            
+            // Make about 5% of asteroids significantly larger
+            const isLarge = Math.random() < 0.05;
+            const baseScale = isLarge ? 
+                2.5 + Math.random() * 2 :  // Large asteroids: 2.5-4.5x
+                0.5 + Math.random() * 1.5;  // Normal asteroids: 0.5-2x
+            
             return {
                 angle,
                 radius: orbitRadius, // Renamed to avoid confusion
                 y,
                 rotationSpeed: 0.001 + Math.random() * 0.002,
-                scale: 0.5 + Math.random() * 1.5
+                scale: baseScale
             };
         });
     }, [radius, width, count]);

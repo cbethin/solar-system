@@ -2,34 +2,38 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 
 export const StarField: React.FC = () => {
-    const count = 2500; // More stars
+    const count = 5000; // Increased star count
     const positions = useMemo(() => {
         const temp = new Float32Array(count * 3);
-        const minDistance = 1200; // Minimum distance for stars from center
-        let validPoints = 0;
 
-        while (validPoints < count) {
-            const radius = 1000 + Math.random() * 1000;
-            const theta = Math.random() * Math.PI * 2;
-            const phi = Math.acos(2 * Math.random() - 1);
+        // Sphere parameters
+        const radius = 15000; // Much larger radius (10x the solar system size)
+        const thickness = 500; // Thickness of the shell where stars can appear
 
-            const x = radius * Math.sin(phi) * Math.cos(theta);
-            const y = radius * Math.sin(phi) * Math.sin(theta);
-            const z = radius * Math.cos(phi);
-
-            // Calculate distance from origin
-            const distance = Math.sqrt(x * x + y * y + z * z);
+        for (let i = 0; i < count; i++) {
+            // Use spherical coordinates for better distribution
+            const phi = Math.random() * Math.PI * 2; // Longitude
+            const theta = Math.acos(2 * Math.random() - 1); // Latitude
             
-            // Only add stars beyond our minimum distance
-            if (distance > minDistance) {
-                temp[validPoints * 3] = x;
-                temp[validPoints * 3 + 1] = y;
-                temp[validPoints * 3 + 2] = z;
-                validPoints++;
-            }
+            // Random radius within the shell thickness
+            const r = radius + (Math.random() - 0.5) * thickness;
+            
+            // Convert to Cartesian coordinates
+            temp[i * 3] = r * Math.sin(theta) * Math.cos(phi);     // x
+            temp[i * 3 + 1] = r * Math.sin(theta) * Math.sin(phi); // y
+            temp[i * 3 + 2] = r * Math.cos(theta);                 // z
         }
         return temp;
     }, []);
+
+    // Calculate sizes for varying star brightness
+    const sizes = useMemo(() => {
+        const temp = new Float32Array(count);
+        for (let i = 0; i < count; i++) {
+            temp[i] = Math.random() * 3; // Varying star sizes
+        }
+        return temp;
+    }, [count]);
 
     return (
         <points>
@@ -40,13 +44,20 @@ export const StarField: React.FC = () => {
                     array={positions}
                     itemSize={3}
                 />
+                <bufferAttribute
+                    attach="attributes-size"
+                    count={count}
+                    array={sizes}
+                    itemSize={1}
+                />
             </bufferGeometry>
-            <pointsMaterial 
-                size={2.0} // Slightly larger stars
-                color="#ffffff" 
-                sizeAttenuation={true} // Enable size attenuation for depth effect
+            <pointsMaterial
+                size={4.0}           // Increased size for better visibility
+                sizeAttenuation={true}
+                color="#ffffff"
                 transparent
-                opacity={0.9} // Increased brightness
+                opacity={1.0}        // Increased opacity
+                blending={THREE.AdditiveBlending}
             />
         </points>
     );

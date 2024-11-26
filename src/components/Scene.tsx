@@ -2,15 +2,13 @@ import React, { useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
-import { BackSide } from "three";
 import { Planet } from "./Planet";
 import { StarField } from "./StarField";
 import { Sun } from "./Sun";
-import { planets } from "../data/planetData";
 import { useCameraControls } from "../hooks/useCameraControls";
 import { PlanetData } from "@/types/types";
 import { AsteroidBelt } from "./AsteroidBelt";
-import { solarSystemLayout } from "../data/solarSystemLayout";
+import { visualSolarSystemLayout } from "../data/solarSystemLayout";
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
@@ -23,8 +21,8 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
             camera={{ 
                 position: [0, 500, 800], // More dramatic starting angle
                 fov: 60, // Narrower FOV for more cinematic look
-                near: 10,
-                far: 20000
+                near: 0.1,      // Much closer near plane
+                far: 200000     // Much further far plane
             }}
             gl={{
                 antialias: true,
@@ -33,7 +31,7 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 powerPreference: "high-performance",
                 alpha: false,
                 webgl2: true,
-                logarithmicDepthBuffer: false, // Disable unless needed
+                logarithmicDepthBuffer: true, // Enable this for better depth precision
             }}
             performance={{ min: 0.5 }} // Allow frame rate to drop to maintain smoothness
         >
@@ -57,7 +55,12 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
     // Disable orbit controls when following a planet
     useEffect(() => {
         if (orbitControlsRef.current) {
+            // Completely disable controls when following
             orbitControlsRef.current.enabled = !isFollowing;
+            
+            // Reset damping when switching modes
+            orbitControlsRef.current.enableDamping = !isFollowing;
+            orbitControlsRef.current.dampingFactor = isFollowing ? 0 : 0.05;
         }
     }, [isFollowing]);
 
@@ -83,21 +86,12 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
 
     return (
         <>
-            <color attach="background" args={["#000005"]} /> {/* Deeper space black */}
-            <fog attach="fog" args={["#000010", 3500, 12000]} /> {/* More atmospheric fog */}
+            <color attach="background" args={["#1c1f22"]} /> {/* Very slightly blue-tinted black */}
+            <fog attach="fog" args={["#1c1f22", 3500, 30000]} /> {/* Matching fog color */}
             <StarField />
-            <mesh>
-                <sphereGeometry args={[995, 32, 32]} /> {/* Increased boundary sphere */}
-                <meshBasicMaterial
-                    color="#000020"
-                    side={BackSide}
-                    transparent
-                    opacity={0.3} /* Reduced opacity */
-                />
-            </mesh>
             <ambientLight intensity={1.5} /> {/* Increased base ambient light */}
             <Sun />
-            {solarSystemLayout.objects.map((object, index) => (
+            {visualSolarSystemLayout.objects.map((object, index) => (
                 object.type === 'planet' ? (
                     <Planet
                         key={index}
@@ -119,24 +113,16 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
             ))}
             <OrbitControls
                 ref={orbitControlsRef}
-                enabled={!isFollowing}  // Only disable controls when following a planet
-                enablePan={true}
-                enableZoom={true}       // Changed to true to allow zooming
-                enableRotate={true}
-                minDistance={100}
-                maxDistance={8000} // Increased from 5000
-                makeDefault            // Add this to make it the default controls
+                enabled={!isFollowing}
+                enablePan={false}       // Disable panning
+                enableZoom={false}      // Disable zooming
+                enableRotate={false}    // Disable rotation
+                makeDefault
                 target={[0, 0, 0]}
-                // Add these to prevent automatic camera movements
                 enableDamping={false}
                 autoRotate={false}
-                // Remove layers prop to allow interaction with all visible objects
-                screenSpacePanning={true}
-                mouseButtons={{
-                    LEFT: THREE.MOUSE.ROTATE,
-                    MIDDLE: THREE.MOUSE.DOLLY,
-                    RIGHT: THREE.MOUSE.PAN
-                }}
+                screenSpacePanning={false}
+                mouseButtons={{}}        // Empty object to disable all mouse buttons
             />
         </>
     );
