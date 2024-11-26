@@ -19,6 +19,22 @@ const LIGHT_SECONDS_TO_PIXELS = 180 / 193; // Mercury's 193 light-seconds = 180p
 // period: Earth years
 // eccentricity: ratio (dimensionless)
 // distanceFromSun: Astronomical Units (AU)
+
+// Real diameters in km (for reference)
+// Sun: 1,392,700
+// Mercury: 4,879
+// Venus: 12,104
+// Earth: 12,742
+// Mars: 6,779
+// Jupiter: 139,820
+// Saturn: 116,460
+// Uranus: 50,724
+// Neptune: 49,244
+
+// Convert planet sizes to scale relative to Earth (Earth = 1)
+const EARTH_SIZE = 12742; // km
+const SIZE_SCALE = (size: number) => (size / EARTH_SIZE) * BASE_SCALE;
+
 export const solarSystemLayout: SolarSystemLayout = {
     objects: [
         {
@@ -26,7 +42,7 @@ export const solarSystemLayout: SolarSystemLayout = {
             name: "Mercury",
             orbitRadius: 193 * LIGHT_SECONDS_TO_PIXELS,    // 193 light-seconds
             period: 0.24,        // years (88 days)
-            size: 1.7 * BASE_SCALE,
+            size: SIZE_SCALE(4879), // Using real diameter
             color: "#A0522D",
             eccentricity: 0.205, // most eccentric of the planets
             distanceFromSun: 0.387, // AU
@@ -36,7 +52,7 @@ export const solarSystemLayout: SolarSystemLayout = {
             name: "Venus",
             orbitRadius: 360 * LIGHT_SECONDS_TO_PIXELS,    // 360 light-seconds
             period: 0.62,        // years
-            size: 4.2 * BASE_SCALE,
+            size: SIZE_SCALE(12104), // Using real diameter
             color: "#DEB887",
             eccentricity: 0.007, // nearly circular orbit
             distanceFromSun: 0.723, // AU
@@ -46,7 +62,7 @@ export const solarSystemLayout: SolarSystemLayout = {
             name: "Earth",
             orbitRadius: 499 * LIGHT_SECONDS_TO_PIXELS,    // 499 light-seconds
             period: 1,           // years
-            size: 4.4 * BASE_SCALE,
+            size: SIZE_SCALE(12742), // Using real diameter
             color: "#4169E1",
             eccentricity: 0.017, // nearly circular orbit
             distanceFromSun: 1  // AU

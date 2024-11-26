@@ -20,10 +20,18 @@ export const useCameraControls = () => {
         a: false,
         s: false,
         d: false,
-        x: false  // Add x key
+        x: false,
+        q: false,  // Add q key
+        e: false   // Add e key
     });
-    const MOVEMENT_SPEED = 500; // Units per second
+    const MOVEMENT_SPEED = 1000; // Units per second
+    const ROTATION_SPEED = 0.002; // Reduced from 0.5
     const moveDirection = new THREE.Vector3();
+
+    // Add mouse control states
+    const isDragging = useRef(false);
+    const previousMousePosition = useRef({ x: 0, y: 0 });
+    const SCROLL_SPEED = 50;
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -96,34 +104,110 @@ export const useCameraControls = () => {
             camera.far = targetPlanet.current.orbitRadius * 10;
             camera.updateProjectionMatrix();
         } else {
-            // Handle WASD movement
-            moveDirection.set(0, 0, 0);
+            // Get current camera position vector from origin
+            const currentPos = camera.position.clone();
+            const distanceFromCenter = currentPos.length();
             
-            if (keys.w) moveDirection.z -= 1;
-            if (keys.s) moveDirection.z += 1;
-            if (keys.a) moveDirection.x -= 1;
-            if (keys.d) moveDirection.x += 1;
-
-            if (moveDirection.length() > 0) {
-                moveDirection.normalize();
-                moveDirection.multiplyScalar(MOVEMENT_SPEED * delta);
-                camera.position.add(moveDirection);
+            // Handle radial movement (W/S)
+            if (keys.w) {
+                // Move inward
+                currentPos.normalize().multiplyScalar(-MOVEMENT_SPEED * delta);
+                camera.position.add(currentPos);
             }
+            if (keys.s) {
+                // Move outward
+                currentPos.normalize().multiplyScalar(MOVEMENT_SPEED * delta);
+                camera.position.add(currentPos);
+            }
+
+            // Handle orbital rotation (A/D)
+            if (keys.a) {
+                const rotationMatrix = new THREE.Matrix4();
+                rotationMatrix.makeRotationY(ROTATION_SPEED * delta);
+                camera.position.applyMatrix4(rotationMatrix);
+            }
+            if (keys.d) {
+                const rotationMatrix = new THREE.Matrix4();
+                rotationMatrix.makeRotationY(-ROTATION_SPEED * delta);
+                camera.position.applyMatrix4(rotationMatrix);
+            }
+
+            // Handle vertical movement (Q/E)
+            if (keys.q) {
+                camera.position.y -= MOVEMENT_SPEED * delta;
+            }
+            if (keys.e) {
+                camera.position.y += MOVEMENT_SPEED * delta;
+            }
+
+            // Always look at center
+            camera.lookAt(0, 0, 0);
         }
     });
 
     useEffect(() => {
-        const handleScroll = () => {
-            console.log('Camera position:', {
-                x: camera.position.x.toFixed(2),
-                y: camera.position.y.toFixed(2),
-                z: camera.position.z.toFixed(2)
-            });
+        const handleMouseDown = (e: MouseEvent) => {
+            isDragging.current = true;
+            previousMousePosition.current = { x: e.clientX, y: e.clientY };
         };
 
+        const handleMouseUp = () => {
+            isDragging.current = false;
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isDragging.current || isFollowing) return;
+
+            const deltaX = e.clientX - previousMousePosition.current.x;
+            const deltaY = e.clientY - previousMousePosition.current.y;
+
+            // Rotate camera around world up axis for X movement
+            camera.position.sub(new THREE.Vector3(0, 0, 0));
+            camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -deltaX * ROTATION_SPEED);
+            camera.position.add(new THREE.Vector3(0, 0, 0));
+
+            // Rotate camera around its right axis for Y movement
+            const right = new THREE.Vector3();
+            camera.getWorldDirection(right).cross(new THREE.Vector3(0, 1, 0));
+            camera.position.sub(new THREE.Vector3(0, 0, 0));
+            camera.position.applyAxisAngle(right, -deltaY * ROTATION_SPEED);
+            camera.position.add(new THREE.Vector3(0, 0, 0));
+
+            camera.lookAt(0, 0, 0);
+            previousMousePosition.current = { x: e.clientX, y: e.clientY };
+        };
+
+        const handleScroll = (e: WheelEvent) => {
+            if (isFollowing) return;
+
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            
+            // Scale movement by scroll delta
+            direction.multiplyScalar(-e.deltaY * SCROLL_SPEED * 0.01);
+            camera.position.add(direction);
+        };
+
+        window.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('wheel', handleScroll);
-        return () => window.removeEventListener('wheel', handleScroll);
-    }, [camera]);
+
+        return () => {
+            window.removeEventListener('mousedown', handleMouseDown);
+            window.removeEventListener('mouseup', handleMouseUp);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('wheel', handleScroll);
+        };
+    }, [camera, isFollowing]);
+
+    // Remove or comment out the old scroll effect
+    // useEffect(() => {
+    //     const handleScroll = () => {
+    //         console.log('Camera position:', ...);
+    //     };
+    //     ...
+    // }, [camera]);
 
     // Add initialization effect
     useEffect(() => {
@@ -134,7 +218,6 @@ export const useCameraControls = () => {
     const jumpToPlanet = (planet: PlanetData, mesh: THREE.Mesh) => {
         targetPlanet.current = planet;
         meshRef.current = mesh;
-        // Start camera from planet's current position
         orbitAngle.current = Math.atan2(mesh.position.z, mesh.position.x);
         setIsFollowing(true);
     };
@@ -170,9 +253,10 @@ export const useCameraControls = () => {
 
     return { 
         jumpToPlanet, 
-        jumpToOrbit, // Add new method to return object
+        jumpToOrbit, 
         resetCamera, 
         targetPlanet: targetPlanet.current, 
-        isFollowing 
+        isFollowing,
+        activeKeys: keys  // Add this to expose the key states
     };
 };

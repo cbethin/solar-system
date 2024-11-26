@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { InstancedMesh, Matrix4 } from 'three';
+import { useSimulationStore } from '../store/simulationStore'; // Add this import
 
 interface AsteroidBeltProps {
     radius: number;
@@ -17,23 +18,30 @@ export const AsteroidBelt: React.FC<AsteroidBeltProps> = ({
     color 
 }) => {
     const meshRef = useRef<InstancedMesh>(null);
-
+    const radiusScale = useSimulationStore(state => state.radiusScale); // Add this line
+    
+    // Scale asteroid count based on radius scale
+    const scaledCount = Math.floor(count * Math.sqrt(radiusScale));
+    
     const dummy = useMemo(() => new THREE.Object3D(), []);
     const matrix = useMemo(() => new Matrix4(), []);
 
     // Generate random but stable positions for asteroids
     const positions = useMemo(() => {
-        const beltRadius = radius; // Create local reference to avoid scope issues
-        return Array.from({ length: count }, (_, i) => {
+        const scaledRadius = radius * radiusScale; // Scale the radius
+        const scaledWidth = width * radiusScale;   // Scale the width too
+        
+        return Array.from({ length: scaledCount }, (_, i) => {
             const angle = Math.random() * Math.PI * 2;
-            const orbitRadius = beltRadius + (Math.random() - 0.5) * width;
-            const y = (Math.random() - 0.5) * width * 0.5;
+            const orbitRadius = scaledRadius + (Math.random() - 0.5) * scaledWidth;
+            const y = (Math.random() - 0.5) * scaledWidth * 0.5;
             
-            // Make about 5% of asteroids significantly larger
+            // Scale the base sizes with radiusScale
             const isLarge = Math.random() < 0.05;
-            const baseScale = isLarge ? 
+            const baseScale = (isLarge ? 
                 2.5 + Math.random() * 2 :  // Large asteroids: 2.5-4.5x
-                0.5 + Math.random() * 1.5;  // Normal asteroids: 0.5-2x
+                0.5 + Math.random() * 1.5   // Normal asteroids: 0.5-2x
+            ) * Math.sqrt(radiusScale);     // Scale size with sqrt for more balanced scaling
             
             return {
                 angle,
@@ -43,7 +51,7 @@ export const AsteroidBelt: React.FC<AsteroidBeltProps> = ({
                 scale: baseScale
             };
         });
-    }, [radius, width, count]);
+    }, [radius, width, scaledCount, radiusScale]); // Add radiusScale to dependencies
 
     useFrame((state, delta) => {
         if (!meshRef.current) return;
@@ -65,7 +73,7 @@ export const AsteroidBelt: React.FC<AsteroidBeltProps> = ({
     });
 
     return (
-        <instancedMesh ref={meshRef} args={[undefined, undefined, count]}>
+        <instancedMesh ref={meshRef} args={[undefined, undefined, scaledCount]}>
             <dodecahedronGeometry args={[0.8]} />
             <meshStandardMaterial 
                 color={color} 

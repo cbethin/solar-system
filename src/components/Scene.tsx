@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -9,6 +9,7 @@ import { useCameraControls } from "../hooks/useCameraControls";
 import { PlanetData } from "@/types/types";
 import { AsteroidBelt } from "./AsteroidBelt";
 import { visualSolarSystemLayout } from "../data/solarSystemLayout";
+import { KeyDisplay } from "./KeyDisplay"; // Add this import
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
@@ -16,35 +17,52 @@ interface SceneProps {
 }
 
 export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
+    const [activeKeys, setActiveKeys] = useState({}); // Add this state
+
     return (
-        <Canvas
-            camera={{ 
-                position: [0, 500, 800], // More dramatic starting angle
-                fov: 60, // Narrower FOV for more cinematic look
-                near: 0.1,      // Much closer near plane
-                far: 200000     // Much further far plane
-            }}
-            gl={{
-                antialias: true,
-                toneMapping: THREE.ACESFilmicToneMapping,
-                outputEncoding: THREE.sRGBEncoding,
-                powerPreference: "high-performance",
-                alpha: false,
-                webgl2: true,
-                logarithmicDepthBuffer: true, // Enable this for better depth precision
-            }}
-            performance={{ min: 0.5 }} // Allow frame rate to drop to maintain smoothness
-        >
-            <React.Suspense fallback={null}>
-                <SceneContent hoveredPlanet={hoveredPlanet} setSelectedPlanet={setSelectedPlanet} />
-            </React.Suspense>
-        </Canvas>
+        <div className="relative w-full h-full">
+            <Canvas
+                camera={{ 
+                    position: [0, 500, 800], // More dramatic starting angle
+                    fov: 60, // Narrower FOV for more cinematic look
+                    near: 0.1,      // Much closer near plane
+                    far: 200000     // Much further far plane
+                }}
+                gl={{
+                    antialias: true,
+                    toneMapping: THREE.ACESFilmicToneMapping,
+                    outputEncoding: THREE.sRGBEncoding,
+                    powerPreference: "high-performance",
+                    alpha: false,
+                    webgl2: true,
+                    logarithmicDepthBuffer: true, // Enable this for better depth precision
+                }}
+                performance={{ min: 0.5 }} // Allow frame rate to drop to maintain smoothness
+            >
+                <React.Suspense fallback={null}>
+                    <SceneContent 
+                        hoveredPlanet={hoveredPlanet} 
+                        setSelectedPlanet={setSelectedPlanet}
+                        onKeysChange={setActiveKeys} 
+                    />
+                </React.Suspense>
+            </Canvas>
+            <KeyDisplay activeKeys={activeKeys} />
+        </div>
     );
 };
 
-const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
+interface SceneContentProps extends SceneProps {
+    onKeysChange: (keys: any) => void;
+}
+
+const SceneContent: React.FC<SceneContentProps> = ({ 
+    hoveredPlanet, 
+    setSelectedPlanet,
+    onKeysChange 
+}) => {
     const { camera } = useThree();
-    const { jumpToPlanet, resetCamera, targetPlanet, isFollowing } = useCameraControls();
+    const { jumpToPlanet, resetCamera, targetPlanet, isFollowing, activeKeys } = useCameraControls();
     const orbitControlsRef = useRef<any>(null);
 
     // Simplify camera layer setup
@@ -64,25 +82,34 @@ const SceneContent: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
         }
     }, [isFollowing]);
 
+    // Keyboard event handler
     useEffect(() => {
         const handleKeyPress = (event: KeyboardEvent) => {
             if (event.key.toLowerCase() === 'x' && targetPlanet) {
+                console.log("Resetting camera position");
                 resetCamera();
-                setSelectedPlanet(null);
             }
         };
 
         window.addEventListener('keydown', handleKeyPress);
-        
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [targetPlanet, resetCamera]);
+
+    // Cleanup on component unmount only
+    useEffect(() => {
         return () => {
-            window.removeEventListener('keydown', handleKeyPress);
-            // Cleanup camera state when component unmounts
             if (targetPlanet) {
                 resetCamera();
                 setSelectedPlanet(null);
             }
         };
-    }, [targetPlanet, resetCamera, setSelectedPlanet]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Update parent component with active keys
+    useEffect(() => {
+        onKeysChange(activeKeys);
+    }, [activeKeys, onKeysChange]);
 
     return (
         <>

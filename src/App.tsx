@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Scene } from "./components/Scene";
 import { Tooltip } from "./components/Tooltip";
 import { SizeToggle } from "./components/SizeToggle";
+import { SpeedControl } from "./components/SpeedControl"; // Add this import
+import { RadiusToggle } from "./components/RadiusToggle"; // Add this import
 import { PlanetContext } from "./context/PlanetContext";
 import { PlanetData } from "./types/types";
 
@@ -38,7 +40,11 @@ const SolarSystem = () => {
                     hoveredPlanet={hoveredPlanet}
                     selectedPlanet={selectedPlanet}
                 />
-                <SizeToggle />
+                <div className="fixed bottom-4 left-4 right-4 flex justify-center gap-4 overflow-x-auto pb-2">
+                    <SpeedControl />
+                    <SizeToggle />
+                    <RadiusToggle />
+                </div>
             </div>
         </PlanetContext.Provider>
     );

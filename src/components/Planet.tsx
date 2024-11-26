@@ -19,7 +19,8 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
     onClick,
     // Remove moons parameter
 }) => {
-    const SIZE_MULTIPLIER = 5; // Add this constant
+    // Modify size multiplier to maintain astronomical scale
+    const SIZE_MULTIPLIER = 1; // Changed from 5 to 1 to respect provided scales
     const LINE_THICKNESS_FACTOR = 0.4; // Add this constant
     const orbitLineThickness = Math.max(2, size * SIZE_MULTIPLIER * LINE_THICKNESS_FACTOR); // Add this calculation
     const [angle, setAngle] = useState(Math.random() * 360);
@@ -35,11 +36,19 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
     const { setHoveredPlanet } = context;
 
     const planetScale = useSimulationStore(state => state.planetScale);
+    const orbitSpeed = useSimulationStore(state => state.orbitSpeed);
+    const isRealisticRadius = useSimulationStore(state => state.isRealisticRadius);
+    const radiusScale = useSimulationStore(state => state.radiusScale);
     
-    // Add spring animation for both size and orbit line thickness
+    // Modify the spring to include orbit radius
     const springs = useSpring({
-        scale: [size * planetScale, size * planetScale, size * planetScale],
+        scale: [
+            size * planetScale * SIZE_MULTIPLIER, 
+            size * planetScale * SIZE_MULTIPLIER, 
+            size * planetScale * SIZE_MULTIPLIER
+        ],
         lineThickness: Math.max(2, size * planetScale * LINE_THICKNESS_FACTOR),
+        orbitRadius: orbitRadius * radiusScale, // Add this
         config: { 
             mass: 2,           // Increased mass
             tension: 120,      // Reduced tension
@@ -80,12 +89,18 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
         blending: THREE.AdditiveBlending
     }), []);
 
+    // Update orbit geometry creation to use the spring value
+    const createScaledOrbitGeometry = (radius: number, thickness: number) => {
+        return Calc.createOrbitLineGeometry(radius, eccentricity, thickness);
+    };
+
     useFrame((state, delta) => {
         if (!meshRef.current) return;
         
-        // Optimize angle calculation
-        setAngle(angle => (angle + (6 / scaledPeriod) * speedMultiplier) % 360);
-        const position = Calc.getOrbitPosition(angle, orbitRadius, eccentricity);
+        // Use the spring value for position calculation
+        const effectiveRadius = springs.orbitRadius.get();
+        setAngle(angle => (angle + (6 / scaledPeriod) * speedMultiplier * orbitSpeed) % 360);
+        const position = Calc.getOrbitPosition(angle, effectiveRadius, eccentricity);
         meshRef.current.position.copy(position);
     });
 
@@ -114,7 +129,10 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
                 layers={0}  // Changed to default layer for interaction
             >
                 <primitive
-                    object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, springs.lineThickness.get() * 2)}
+                    object={createScaledOrbitGeometry(
+                        springs.orbitRadius.get(),
+                        springs.lineThickness.get() * 2
+                    )}
                 />
                 <meshBasicMaterial
                     color="#ffffff"
@@ -128,7 +146,10 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
             {/* Visible orbit line */}
             <mesh onClick={() => onClick(meshRef.current!)} layers={0}>  // Changed to default layer for interaction
                 <primitive
-                    object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, springs.lineThickness.get())}
+                    object={createScaledOrbitGeometry(
+                        springs.orbitRadius.get(),
+                        springs.lineThickness.get()
+                    )}
                 />
                 <meshBasicMaterial
                     color={isHovered ? "#ffffff" : "#666666"}
@@ -142,7 +163,10 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
             {/* Glow effect line (only visible on hover) */}
             <mesh onClick={() => onClick(meshRef.current!)} layers={1}>
                 <primitive
-                    object={Calc.createOrbitLineGeometry(orbitRadius, eccentricity, springs.lineThickness.get() * 3)}
+                    object={createScaledOrbitGeometry(
+                        springs.orbitRadius.get(),
+                        springs.lineThickness.get() * 3
+                    )}
                 />
                 <meshBasicMaterial
                     color="#ffffff"

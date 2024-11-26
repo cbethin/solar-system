@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import * as THREE from "three";
 
 export const StarField: React.FC = () => {
+    const BRIGHTNESS_MULTIPLIER = 2.0; // Adjust this to control overall star brightness
     const count = 5000; // Increased star count
     const positions = useMemo(() => {
         const temp = new Float32Array(count * 3);
@@ -26,11 +27,24 @@ export const StarField: React.FC = () => {
         return temp;
     }, []);
 
-    // Calculate sizes for varying star brightness
+    // Add colors for varying star brightness
+    const colors = useMemo(() => {
+        const temp = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            const intensity = (2 + Math.random() * 8) * BRIGHTNESS_MULTIPLIER; // Super bright: 2.0 to 10.0
+            // Add slight color variation for more realistic stars
+            temp[i * 3] = intensity * (0.95 + Math.random() * 0.05);     // R slightly higher
+            temp[i * 3 + 1] = intensity * (0.85 + Math.random() * 0.15); // G varied
+            temp[i * 3 + 2] = intensity * (0.75 + Math.random() * 0.25); // B varied
+        }
+        return temp;
+    }, []);
+
+    // Modify sizes for brighter appearance
     const sizes = useMemo(() => {
         const temp = new Float32Array(count);
         for (let i = 0; i < count; i++) {
-            temp[i] = Math.random() * 3; // Varying star sizes
+            temp[i] = (Math.random() * 15 + 5) * BRIGHTNESS_MULTIPLIER; // Sizes between 5 and 20
         }
         return temp;
     }, [count]);
@@ -50,13 +64,19 @@ export const StarField: React.FC = () => {
                     array={sizes}
                     itemSize={1}
                 />
+                <bufferAttribute
+                    attach="attributes-color"
+                    count={count}
+                    array={colors}
+                    itemSize={3}
+                />
             </bufferGeometry>
             <pointsMaterial
-                size={4.0}           // Increased size for better visibility
+                size={12.0 * BRIGHTNESS_MULTIPLIER}
                 sizeAttenuation={true}
-                color="#ffffff"
+                vertexColors
                 transparent
-                opacity={1.0}        // Increased opacity
+                opacity={1.0}
                 blending={THREE.AdditiveBlending}
             />
         </points>
