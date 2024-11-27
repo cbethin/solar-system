@@ -10,6 +10,24 @@ import { PlanetData } from "@/types/types";
 import { AsteroidBelt } from "./AsteroidBelt";
 import { KeyDisplay } from "./KeyDisplay";
 import { useSimulationStore } from "../store/simulationStore"; // Add this import
+import { visualSolarSystemLayout } from "@/data/solarSystemLayout";
+
+// Add this utility function at the top of the file
+const calculateSystemBounds = (solarSystemLayout: any) => {
+    const maxOrbitRadius = Math.max(
+        ...solarSystemLayout.objects.map((obj: any) => obj.orbitRadius || 0)
+    );
+    
+    return {
+        systemRadius: maxOrbitRadius,
+        cameraFar: maxOrbitRadius * 10, // View distance 10x system size
+        fog: {
+            color: "#1c1f22",
+            near: maxOrbitRadius * 0.5,  // Start fog at half system radius
+            far: maxOrbitRadius * 20      // End fog at 5x system radius
+        }
+    };
+};
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
@@ -23,6 +41,7 @@ export const Scene: React.FC<SceneProps> = ({
     solarSystemLayout  // Add this
 }) => {
     const [activeKeys, setActiveKeys] = useState({});
+    const systemBounds = calculateSystemBounds(solarSystemLayout);
 
     return (
         <div className="relative w-full h-full">
@@ -31,7 +50,7 @@ export const Scene: React.FC<SceneProps> = ({
                     position: [0, 500, 800], // More dramatic starting angle
                     fov: 60, // Narrower FOV for more cinematic look
                     near: 0.1,      // Much closer near plane
-                    far: 1000000     // Increased from 200000 to 1000000
+                    far: systemBounds.cameraFar
                 }}
                 gl={{
                     antialias: true,
@@ -49,6 +68,7 @@ export const Scene: React.FC<SceneProps> = ({
                         setSelectedPlanet={setSelectedPlanet}
                         onKeysChange={setActiveKeys} 
                         solarSystemLayout={solarSystemLayout}  // Add this
+                        systemBounds={systemBounds}
                     />
                 </React.Suspense>
             </Canvas>
@@ -59,13 +79,15 @@ export const Scene: React.FC<SceneProps> = ({
 
 interface SceneContentProps extends SceneProps {
     onKeysChange: (keys: any) => void;
+    systemBounds: ReturnType<typeof calculateSystemBounds>;
 }
 
 const SceneContent: React.FC<SceneContentProps> = ({ 
     hoveredPlanet, 
     setSelectedPlanet,
     onKeysChange,
-    solarSystemLayout  // Add this
+    solarSystemLayout,  // Add this
+    systemBounds
 }) => {
     const { camera } = useThree();
     const { jumpToPlanet, resetCamera, targetPlanet, isFollowing, activeKeys } = useCameraControls();
@@ -134,9 +156,9 @@ const SceneContent: React.FC<SceneContentProps> = ({
         <>
             <color attach="background" args={["#1c1f22"]} />
             <fog attach="fog" args={[
-                solarSystemLayout.fog.color,
-                solarSystemLayout.fog.near,
-                solarSystemLayout.fog.far
+                systemBounds.fog.color,
+                systemBounds.fog.near,
+                systemBounds.fog.far
             ]} />
             <StarField />
             <ambientLight intensity={1.5} /> {/* Increased base ambient light */}
