@@ -17,6 +17,7 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
     eccentricity,
     distanceFromSun,
     onClick,
+    albedo,
     // Remove moons parameter
 }) => {
     // Modify size multiplier to maintain astronomical scale
@@ -81,7 +82,12 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
     const glowGeometry = useMemo(() => new THREE.SphereGeometry(1.2, 32, 32), []); // Base size of 1.2
     
     // Use instances for better performance
-    const planetMaterial = useMemo(() => new THREE.MeshStandardMaterial(), []);
+    const planetMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+        metalness: 0.1,
+        roughness: 1 - albedo, // Convert albedo to roughness
+        envMapIntensity: albedo * 0.5 // Use albedo to affect environment map intensity
+    }), [albedo]);
+
     const glowMaterial = useMemo(() => new THREE.MeshBasicMaterial({
         transparent: true,
         opacity: 0.15,
@@ -104,13 +110,16 @@ export const Planet: React.FC<PlanetData & { onClick: (mesh: THREE.Mesh) => void
         meshRef.current.position.copy(position);
     });
 
-    const planetData = {
+    const planetData: PlanetData = {
+        type: 'planet',  // Add missing type field
         name,
         period,
         eccentricity,
         distanceFromSun,
         orbitRadius,
         size,
+        color,          // Add missing required fields
+        albedo,
     };
 
     return (

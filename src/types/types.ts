@@ -7,6 +7,7 @@ export interface MoonData {
 }
 
 export interface PlanetData {
+    type: 'planet';  // Add this
     orbitRadius: number;
     period: number;
     size: number;
@@ -15,6 +16,7 @@ export interface PlanetData {
     eccentricity: number;
     distanceFromSun: number;
     moons?: MoonData[];
+    albedo: number;  // Value between 0 and 1 representing reflectivity
 }
 
 export interface PlanetContextType {
@@ -33,16 +35,8 @@ export interface AsteroidBeltData {
     name: string;
 }
 
-export interface SolarSystemObject {
-    type: 'planet';
-    orbitRadius: number;
-    period: number;
-    size: number;
-    color: string;
-    name: string;
-    eccentricity: number;
-    distanceFromSun: number;
-    moons?: MoonData[];  // Add moons property to match PlanetData
+export interface SolarSystemObject extends PlanetData {
+    // Remove duplicated fields since we're extending PlanetData
 }
 
 export interface OortCloud {
