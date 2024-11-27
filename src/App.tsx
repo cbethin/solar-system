@@ -42,10 +42,12 @@ const SolarSystem = () => {
                     hoveredPlanet={hoveredPlanet}
                     selectedPlanet={selectedPlanet}
                 />
-                <div className="fixed bottom-4 left-4 right-4 flex justify-center gap-4 overflow-x-auto pb-2">
-                    <SpeedControl />
-                    <SizeToggle />
-                    <RadiusToggle />
+                <div className="fixed bottom-4 left-4 right-4 flex justify-center gap-4 overflow-x-auto pb-2 touch-pan-x will-change-scroll">
+                    <div className="flex gap-4 px-4">
+                        <SpeedControl />
+                        <SizeToggle />
+                        <RadiusToggle />
+                    </div>
                 </div>
             </div>
         </PlanetContext.Provider>

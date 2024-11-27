@@ -205,10 +205,11 @@ export const useCameraControls = () => {
                 const currentDistance = getTouchDistance(e.touches);
                 const delta = currentDistance - previousTouchDistance.current;
                 
-                const direction = new THREE.Vector3();
-                camera.getWorldDirection(direction);
-                direction.multiplyScalar(-delta * PINCH_ZOOM_SPEED);
-                camera.position.add(direction);
+                // Get current camera position vector from origin
+                const currentPos = camera.position.clone();
+                // Move inward or outward based on pinch
+                currentPos.normalize().multiplyScalar(-delta * PINCH_ZOOM_SPEED * 10);
+                camera.position.add(currentPos);
 
                 previousTouchDistance.current = currentDistance;
             }
