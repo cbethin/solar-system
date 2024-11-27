@@ -172,6 +172,15 @@ export const useCameraControls = () => {
             previousMousePosition.current = { x: e.clientX, y: e.clientY };
         };
 
+        const handleScroll = (e: WheelEvent) => {
+            if (isFollowing) return;
+
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            direction.multiplyScalar(-e.deltaY * SCROLL_SPEED * 0.01);
+            camera.position.add(direction);
+        };
+
         // New touch handlers
         const handleTouchStart = (e: TouchEvent) => {
             if (e.touches.length === 1) {
