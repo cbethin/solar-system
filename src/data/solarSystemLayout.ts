@@ -134,13 +134,13 @@ export const solarSystemLayout: SolarSystemLayout = {
             albedo: 0.41, // Ice giant with high reflectivity
             distanceFromSun: 30.069 // AU
         },
-        {
-            type: 'oortCloud',
-            name: "Oort Cloud",
-            innerRadius: 3500,   // px
-            outerRadius: 4500,   // px
-            particleCount: 10000
-        }
+        // {
+        //     type: 'oortCloud',
+        //     name: "Oort Cloud",
+        //     innerRadius: 3500,   // px
+        //     outerRadius: 4500,   // px
+        //     particleCount: 10000
+        // }
     ],
     starField: {
         count: 20000,
@@ -155,7 +155,7 @@ export const solarSystemLayout: SolarSystemLayout = {
     },
     fog: {
         color: "#1c1f22",
-        near: 3500,
+        near: 5000,
         far: 30000
     }
 };

@@ -72,7 +72,12 @@ export interface FogConfiguration {
 }
 
 export interface SolarSystemLayout {
-    objects: Array<PlanetData | AsteroidBeltData | OortCloud>;
+    objects: Array<PlanetData | AsteroidBeltData>;
+    fog: {
+        color: string;
+        near: number;
+        far: number;
+    };
     starField?: {
         count: number;
         depth: number;

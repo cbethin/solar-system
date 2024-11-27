@@ -6,6 +6,7 @@ import { SpeedControl } from "./components/SpeedControl"; // Add this import
 import { RadiusToggle } from "./components/RadiusToggle"; // Add this import
 import { PlanetContext } from "./context/PlanetContext";
 import { PlanetData } from "./types/types";
+import { solarSystemLayout, visualSolarSystemLayout } from "./data/solarSystemLayout"; // Add this import
 
 const SolarSystem = () => {
     const [hoveredPlanet, setHoveredPlanet] = useState<PlanetData | null>(null);
@@ -35,6 +36,7 @@ const SolarSystem = () => {
                 <Scene 
                     hoveredPlanet={hoveredPlanet}
                     setSelectedPlanet={setSelectedPlanet}
+                    solarSystemLayout={visualSolarSystemLayout}
                 />
                 <Tooltip 
                     hoveredPlanet={hoveredPlanet}

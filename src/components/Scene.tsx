@@ -8,16 +8,20 @@ import { Sun } from "./Sun";
 import { useCameraControls } from "../hooks/useCameraControls";
 import { PlanetData } from "@/types/types";
 import { AsteroidBelt } from "./AsteroidBelt";
-import { visualSolarSystemLayout } from "../data/solarSystemLayout";
 import { KeyDisplay } from "./KeyDisplay";
 import { useSimulationStore } from "../store/simulationStore"; // Add this import
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
     setSelectedPlanet: (planet: PlanetData | null) => void;
+    solarSystemLayout: typeof visualSolarSystemLayout;  // Add this line
 }
 
-export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
+export const Scene: React.FC<SceneProps> = ({ 
+    hoveredPlanet, 
+    setSelectedPlanet,
+    solarSystemLayout  // Add this
+}) => {
     const [activeKeys, setActiveKeys] = useState({});
 
     return (
@@ -27,7 +31,7 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                     position: [0, 500, 800], // More dramatic starting angle
                     fov: 60, // Narrower FOV for more cinematic look
                     near: 0.1,      // Much closer near plane
-                    far: 200000     // Much further far plane
+                    far: 1000000     // Increased from 200000 to 1000000
                 }}
                 gl={{
                     antialias: true,
@@ -44,6 +48,7 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                         hoveredPlanet={hoveredPlanet} 
                         setSelectedPlanet={setSelectedPlanet}
                         onKeysChange={setActiveKeys} 
+                        solarSystemLayout={solarSystemLayout}  // Add this
                     />
                 </React.Suspense>
             </Canvas>
@@ -59,7 +64,8 @@ interface SceneContentProps extends SceneProps {
 const SceneContent: React.FC<SceneContentProps> = ({ 
     hoveredPlanet, 
     setSelectedPlanet,
-    onKeysChange 
+    onKeysChange,
+    solarSystemLayout  // Add this
 }) => {
     const { camera } = useThree();
     const { jumpToPlanet, resetCamera, targetPlanet, isFollowing, activeKeys } = useCameraControls();
@@ -126,12 +132,16 @@ const SceneContent: React.FC<SceneContentProps> = ({
 
     return (
         <>
-            <color attach="background" args={["#1c1f22"]} /> {/* Very slightly blue-tinted black */}
-            <fog attach="fog" args={["#1c1f22", 3500, 30000]} /> {/* Matching fog color */}
+            <color attach="background" args={["#1c1f22"]} />
+            <fog attach="fog" args={[
+                solarSystemLayout.fog.color,
+                solarSystemLayout.fog.near,
+                solarSystemLayout.fog.far
+            ]} />
             <StarField />
             <ambientLight intensity={1.5} /> {/* Increased base ambient light */}
             <Sun />
-            {visualSolarSystemLayout.objects.map((object, index) => (
+            {solarSystemLayout.objects.map((object, index) => (
                 object.type === 'planet' ? (
                     <Planet
                         key={index}
