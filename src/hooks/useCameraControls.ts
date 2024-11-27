@@ -121,14 +121,13 @@ export const useCameraControls = () => {
             }
 
             // Handle orbital rotation (A/D)
-            if (keys.a) {
+            if (keys.a || keys.d) {
+                const rotationAngle = (keys.a ? 1 : -1) * ROTATION_SPEED;
                 const rotationMatrix = new THREE.Matrix4();
-                rotationMatrix.makeRotationY(ROTATION_SPEED * delta);
-                camera.position.applyMatrix4(rotationMatrix);
-            }
-            if (keys.d) {
-                const rotationMatrix = new THREE.Matrix4();
-                rotationMatrix.makeRotationY(-ROTATION_SPEED * delta);
+                rotationMatrix.makeRotationY(rotationAngle);
+                
+                // Apply rotation to camera position
+                const cameraPosition = camera.position.clone();
                 camera.position.applyMatrix4(rotationMatrix);
             }
 
