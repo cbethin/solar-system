@@ -33,6 +33,13 @@ export const useCameraControls = () => {
     const previousMousePosition = useRef({ x: 0, y: 0 });
     const SCROLL_SPEED = 50;
 
+    // Add touch control states
+    const isTouching = useRef(false);
+    const previousTouchPosition = useRef({ x: 0, y: 0 });
+    const previousTouchDistance = useRef(0);
+    const TOUCH_ROTATION_SPEED = 0.004;
+    const PINCH_ZOOM_SPEED = 0.05;
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!isFollowing) {
@@ -145,6 +152,7 @@ export const useCameraControls = () => {
     });
 
     useEffect(() => {
+        // Existing mouse handlers
         const handleMouseDown = (e: MouseEvent) => {
             isDragging.current = true;
             previousMousePosition.current = { x: e.clientX, y: e.clientY };
@@ -160,43 +168,89 @@ export const useCameraControls = () => {
             const deltaX = e.clientX - previousMousePosition.current.x;
             const deltaY = e.clientY - previousMousePosition.current.y;
 
-            // Rotate camera around world up axis for X movement
-            camera.position.sub(new THREE.Vector3(0, 0, 0));
-            camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -deltaX * ROTATION_SPEED);
-            camera.position.add(new THREE.Vector3(0, 0, 0));
-
-            // Rotate camera around its right axis for Y movement
-            const right = new THREE.Vector3();
-            camera.getWorldDirection(right).cross(new THREE.Vector3(0, 1, 0));
-            camera.position.sub(new THREE.Vector3(0, 0, 0));
-            camera.position.applyAxisAngle(right, -deltaY * ROTATION_SPEED);
-            camera.position.add(new THREE.Vector3(0, 0, 0));
-
-            camera.lookAt(0, 0, 0);
+            handleRotation(deltaX, deltaY, ROTATION_SPEED);
             previousMousePosition.current = { x: e.clientX, y: e.clientY };
         };
 
-        const handleScroll = (e: WheelEvent) => {
-            if (isFollowing) return;
-
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-            
-            // Scale movement by scroll delta
-            direction.multiplyScalar(-e.deltaY * SCROLL_SPEED * 0.01);
-            camera.position.add(direction);
+        // New touch handlers
+        const handleTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 1) {
+                isTouching.current = true;
+                previousTouchPosition.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            } else if (e.touches.length === 2) {
+                previousTouchDistance.current = getTouchDistance(e.touches);
+            }
         };
 
+        const handleTouchMove = (e: TouchEvent) => {
+            if (isFollowing) return;
+            e.preventDefault();
+
+            if (e.touches.length === 1) {
+                const deltaX = e.touches[0].clientX - previousTouchPosition.current.x;
+                const deltaY = e.touches[0].clientY - previousTouchPosition.current.y;
+
+                handleRotation(deltaX, deltaY, TOUCH_ROTATION_SPEED);
+                previousTouchPosition.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            } else if (e.touches.length === 2) {
+                const currentDistance = getTouchDistance(e.touches);
+                const delta = currentDistance - previousTouchDistance.current;
+                
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.multiplyScalar(-delta * PINCH_ZOOM_SPEED);
+                camera.position.add(direction);
+
+                previousTouchDistance.current = currentDistance;
+            }
+        };
+
+        const handleTouchEnd = () => {
+            isTouching.current = false;
+        };
+
+        // Helper function for rotation
+        const handleRotation = (deltaX: number, deltaY: number, speed: number) => {
+            camera.position.sub(new THREE.Vector3(0, 0, 0));
+            camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -deltaX * speed);
+            
+            const right = new THREE.Vector3();
+            camera.getWorldDirection(right).cross(new THREE.Vector3(0, 1, 0));
+            camera.position.applyAxisAngle(right, -deltaY * speed);
+            
+            camera.position.add(new THREE.Vector3(0, 0, 0));
+            camera.lookAt(0, 0, 0);
+        };
+
+        // Helper function to calculate touch distance
+        const getTouchDistance = (touches: TouchList): number => {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        };
+
+        // Add existing mouse event listeners
         window.addEventListener('mousedown', handleMouseDown);
         window.addEventListener('mouseup', handleMouseUp);
         window.addEventListener('mousemove', handleMouseMove);
         window.addEventListener('wheel', handleScroll);
 
+        // Add new touch event listeners
+        window.addEventListener('touchstart', handleTouchStart);
+        window.addEventListener('touchmove', handleTouchMove, { passive: false });
+        window.addEventListener('touchend', handleTouchEnd);
+
         return () => {
+            // Remove existing mouse event listeners
             window.removeEventListener('mousedown', handleMouseDown);
             window.removeEventListener('mouseup', handleMouseUp);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('wheel', handleScroll);
+
+            // Remove touch event listeners
+            window.removeEventListener('touchstart', handleTouchStart);
+            window.removeEventListener('touchmove', handleTouchMove);
+            window.removeEventListener('touchend', handleTouchEnd);
         };
     }, [camera, isFollowing]);
 
