@@ -141,7 +141,23 @@ export const solarSystemLayout: SolarSystemLayout = {
             outerRadius: 4500,   // px
             particleCount: 10000
         }
-    ]
+    ],
+    starField: {
+        count: 20000,
+        depth: 60,
+        radius: 300
+    },
+    camera: {
+        position: [0, 500, 800],
+        fov: 60,
+        near: 0.1,
+        far: 200000
+    },
+    fog: {
+        color: "#1c1f22",
+        near: 3500,
+        far: 30000
+    }
 };
 
 // Export both raw and scaled versions

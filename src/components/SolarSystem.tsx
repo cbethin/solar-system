@@ -2,7 +2,6 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import { Sun } from './Sun';
 import { Planet } from './Planet';
-import { OortCloud } from './OortCloud';
 import React = require('react');
 
 export const SolarSystem = () => {

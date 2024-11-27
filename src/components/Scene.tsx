@@ -32,11 +32,10 @@ export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }
                 gl={{
                     antialias: true,
                     toneMapping: THREE.ACESFilmicToneMapping,
-                    outputEncoding: THREE.sRGBEncoding,
+                    outputColorSpace: THREE.SRGBColorSpace,
                     powerPreference: "high-performance",
                     alpha: false,
-                    webgl2: true,
-                    logarithmicDepthBuffer: true, // Enable this for better depth precision
+                    logarithmicDepthBuffer: true // Enable this for better depth precision
                 }}
                 performance={{ min: 0.5 }} // Allow frame rate to drop to maintain smoothness
             >

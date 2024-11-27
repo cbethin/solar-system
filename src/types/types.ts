@@ -39,15 +39,7 @@ export interface SolarSystemObject extends PlanetData {
     // Remove duplicated fields since we're extending PlanetData
 }
 
-export interface OortCloud {
-    type: 'oortCloud';
-    name: string;
-    innerRadius: number;
-    outerRadius: number;
-    particleCount: number;
-}
-
-export type CelestialObject = SolarSystemObject | AsteroidBeltData | OortCloud;
+export type CelestialObject = SolarSystemObject | AsteroidBeltData;
 
 export interface StarLightProperties {
     intensity: number;      // brightness of the point light
@@ -80,10 +72,23 @@ export interface FogConfiguration {
 }
 
 export interface SolarSystemLayout {
-    objects: CelestialObject[];
-    starField: StarFieldConfiguration;
-    camera: CameraConfiguration;
-    fog: FogConfiguration;
+    objects: Array<PlanetData | AsteroidBeltData | OortCloud>;
+    starField?: {
+        count: number;
+        depth: number;
+        radius: number;
+    };
+    camera?: {
+        position: [number, number, number];
+        fov: number;
+        near: number;
+        far: number;
+    };
+    fog?: {
+        color: string;
+        near: number;
+        far: number;
+    };
 }
 
 export interface ScaledSolarSystemLayout extends SolarSystemLayout {
