@@ -9,6 +9,8 @@ interface SimulationState {
     setOrbitSpeed: (speed: number) => void;
     radiusScale: number;
     setRadiusScale: (scale: number) => void;
+    showTooltip: boolean;
+    setShowTooltip: (show: boolean) => void;
 }
 
 export const useSimulationStore = create<SimulationState>()((set) => ({
@@ -20,4 +22,6 @@ export const useSimulationStore = create<SimulationState>()((set) => ({
     setOrbitSpeed: (speed) => set({ orbitSpeed: speed }),
     radiusScale: 1,
     setRadiusScale: (scale) => set({ radiusScale: scale }),
+    showTooltip: true,
+    setShowTooltip: (show) => set({ showTooltip: show }),
 }));

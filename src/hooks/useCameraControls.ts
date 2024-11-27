@@ -200,14 +200,6 @@ export const useCameraControls = () => {
         };
     }, [camera, isFollowing]);
 
-    // Remove or comment out the old scroll effect
-    // useEffect(() => {
-    //     const handleScroll = () => {
-    //         console.log('Camera position:', ...);
-    //     };
-    //     ...
-    // }, [camera]);
-
     // Add initialization effect
     useEffect(() => {
         camera.position.set(0, 3169, 5070);

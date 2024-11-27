@@ -9,7 +9,8 @@ import { useCameraControls } from "../hooks/useCameraControls";
 import { PlanetData } from "@/types/types";
 import { AsteroidBelt } from "./AsteroidBelt";
 import { visualSolarSystemLayout } from "../data/solarSystemLayout";
-import { KeyDisplay } from "./KeyDisplay"; // Add this import
+import { KeyDisplay } from "./KeyDisplay";
+import { useSimulationStore } from "../store/simulationStore"; // Add this import
 
 interface SceneProps {
     hoveredPlanet: PlanetData | null;
@@ -17,7 +18,7 @@ interface SceneProps {
 }
 
 export const Scene: React.FC<SceneProps> = ({ hoveredPlanet, setSelectedPlanet }) => {
-    const [activeKeys, setActiveKeys] = useState({}); // Add this state
+    const [activeKeys, setActiveKeys] = useState({});
 
     return (
         <div className="relative w-full h-full">
@@ -64,6 +65,7 @@ const SceneContent: React.FC<SceneContentProps> = ({
     const { camera } = useThree();
     const { jumpToPlanet, resetCamera, targetPlanet, isFollowing, activeKeys } = useCameraControls();
     const orbitControlsRef = useRef<any>(null);
+    const setShowTooltip = useSimulationStore(state => state.setShowTooltip);
 
     // Simplify camera layer setup
     useEffect(() => {
@@ -110,6 +112,18 @@ const SceneContent: React.FC<SceneContentProps> = ({
     useEffect(() => {
         onKeysChange(activeKeys);
     }, [activeKeys, onKeysChange]);
+
+    // Update tooltip visibility when following state or hover changes
+    useEffect(() => {
+        setShowTooltip(isFollowing || hoveredPlanet !== null);
+    }, [isFollowing, hoveredPlanet, setShowTooltip]);
+
+    // Update tooltip visibility on cleanup
+    useEffect(() => {
+        return () => {
+            setShowTooltip(false);
+        };
+    }, [setShowTooltip]);
 
     return (
         <>
