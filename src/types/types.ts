@@ -102,3 +102,34 @@ export interface ScaledSolarSystemLayout extends SolarSystemLayout {
         distance: number;
     };
 }
+
+
+export interface SimulationConfig {
+    solarSystem: {
+        objects: Array<PlanetData | AsteroidBeltData>;  // Replace 'any' with proper planet/asteroid types
+        starField: {
+            count: number;
+            depth: number;
+            radius: number;
+        };
+    };
+    visualOptions: {
+        size: number;
+        distance: number;
+        minPlanetSize: number;
+        maxPlanetSize: number;
+        minOrbitRadius: number;
+        maxOrbitRadius: number;
+    };
+    cameraOptions: {
+        position: [number, number, number];
+        fov: number;
+        near: number;
+        far: number;
+        fog: {
+            color: string;
+            near: number;
+            far: number;
+        };
+    };
+}
